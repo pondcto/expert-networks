@@ -1,0 +1,210 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --sidebar-bg: hsl(210 40% 98%);
+    --sidebar-foreground: hsl(222 84% 5%);
+    --sidebar-primary: hsl(210 40% 98%);
+    --sidebar-primary-foreground: hsl(222 84% 5%);
+    --sidebar-accent: hsl(210 40% 96%);
+    --sidebar-accent-foreground: hsl(222 84% 5%);
+    --sidebar-border: hsl(214 32% 91%);
+    --sidebar-ring: hsl(222 84% 5%);
+  }
+  
+  .dark {
+    --sidebar-bg: hsl(222 84% 5%);
+    --sidebar-foreground: hsl(210 40% 98%);
+    --sidebar-primary: hsl(222 84% 5%);
+    --sidebar-primary-foreground: hsl(210 40% 98%);
+    --sidebar-accent: hsl(217 33% 17%);
+    --sidebar-accent-foreground: hsl(210 40% 98%);
+    --sidebar-border: hsl(217 33% 17%);
+    --sidebar-ring: hsl(210 40% 98%);
+  }
+
+  body {
+    @apply bg-light-background text-light-text font-space-grotesk;
+  }
+  .dark body {
+    @apply bg-dark-background text-dark-text;
+  }
+
+  /* Dark mode scrollbar colors - updated to match cyan-gray palette */
+  .dark * {
+    scrollbar-color: #232930 #0b0f12; /* thumb track - cyan-gray tones */
+  }
+  .dark *::-webkit-scrollbar-track {
+    background: #0b0f12;
+  }
+  .dark *::-webkit-scrollbar-thumb {
+    background-color: #232930;
+  }
+  .dark *::-webkit-scrollbar-thumb:hover {
+    background-color: #2f343b; /* Slightly brighter cyan-gray */
+  }
+}
+
+@layer components {
+  /* KITT processing bar remains unchanged */
+  .kitt-scan {
+    position: relative;
+    display: inline-block;
+    width: 68px;
+    height: 4px;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,69,142,0.4) 50%, rgba(0,0,0,0) 100%);
+    animation: kitt 1.2s infinite ease-in-out;
+  }
+  .kitt-scan--wide {
+    width: 84px;
+  }
+  @keyframes kitt {
+    0% { box-shadow: -24px 0 0 0 rgba(0,69,142,0.45); }
+    50% { box-shadow: 0 0 0 0 rgba(0,69,142,0.8); }
+    100% { box-shadow: 24px 0 0 0 rgba(0,69,142,0.45); }
+  }
+  .card {
+    @apply bg-light-surface border border-light-border rounded-lg p-6 shadow-card transition-all duration-200;
+  }
+
+  /* React Select Custom Styling - updated for new dark colors */
+  .react-select-container .react-select__control {
+    @apply !bg-light-surface dark:!bg-dark-surface border-light-border dark:border-dark-border !shadow-none !min-h-[38px];
+  }
+  
+  .react-select-container .react-select__control:hover {
+    @apply border-primary-300 dark:border-dark-border-hover;
+  }
+  
+  .react-select-container .react-select__control--is-focused {
+    @apply !border-primary-500 !shadow-none ring-1 ring-primary-500/20;
+  }
+  
+  .react-select-container .react-select__menu {
+    @apply !bg-light-surface dark:!bg-dark-surface border border-light-border dark:border-dark-border !shadow-lg;
+  }
+  
+  .react-select-container .react-select__option {
+    @apply !bg-transparent hover:!bg-light-surface-hover dark:hover:!bg-dark-surface-hover !text-light-text dark:!text-dark-text;
+  }
+  
+  .react-select-container .react-select__option--is-selected {
+    @apply !bg-primary-500 !text-white;
+  }
+  
+  .react-select-container .react-select__option--is-focused {
+    @apply !bg-light-surface-hover dark:!bg-dark-surface-hover;
+  }
+  
+  .react-select-container .react-select__multi-value {
+    @apply !bg-primary-100 dark:!bg-primary-900/20; /* Reduced opacity for subtlety */
+  }
+  
+  .react-select-container .react-select__multi-value__label {
+    @apply !text-primary-900 dark:!text-primary-100;
+  }
+  
+  .react-select-container .react-select__multi-value__remove {
+    @apply !text-primary-600 dark:!text-primary-400 hover:!bg-primary-200 dark:hover:!bg-primary-800/30;
+  }
+  
+  .react-select-container .react-select__placeholder {
+    @apply !text-light-text-tertiary dark:!text-dark-text-tertiary;
+  }
+  
+  .react-select-container .react-select__single-value {
+    @apply !text-light-text dark:!text-dark-text;
+  }
+  
+  .dark .card {
+    @apply bg-dark-surface border-dark-border shadow-card-dark;
+  }
+  
+  /* Login background */
+  .login-bg {
+    background-image: url('/images/login-bg.png');
+    @apply bg-cover bg-center bg-no-repeat;
+  }
+  
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center rounded-md px-4 py-2 font-medium transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none shadow-sm;
+  }
+  .btn-primary {
+    @apply btn bg-primary-500 text-white hover:bg-primary-400 focus:ring-primary-500 focus:ring-offset-light-surface dark:focus:ring-offset-dark-surface;
+  }
+  .btn-secondary {
+    @apply btn bg-light-surface border border-light-border text-light-text hover:bg-light-background dark:bg-dark-surface dark:border-dark-border dark:text-dark-text dark:hover:bg-dark-background;
+  }
+  
+  /* Inputs */
+  .input {
+    @apply w-full rounded-md border border-light-border bg-light-surface px-3 py-2 text-light-text placeholder:text-light-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-dark-surface dark:border-dark-border dark:text-dark-text dark:placeholder:text-dark-text-tertiary;
+  }
+  
+  /* Checkboxes */
+  input[type="checkbox"] {
+    @apply appearance-none bg-light-surface border border-light-border rounded focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-colors;
+  }
+  .dark input[type="checkbox"] {
+    @apply bg-dark-surface border-dark-border;
+  }
+  input[type="checkbox"]:checked {
+    @apply bg-primary-500 border-primary-500;
+    background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='m13.854 3.646-7.5 7.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6 10.293l7.146-7.147a.5.5 0 0 1 .708.708z'/%3e%3c/svg%3e");
+    background-size: 100% 100%;
+    background-position: 50%;
+    background-repeat: no-repeat;
+  }
+  
+  /* KITT-style scanning bar for Send button processing state */
+  .kitt-scan {
+    position: relative;
+    display: inline-block;
+    width: 96px;
+    height: 8px;
+    border-radius: 9999px;
+    /* Gradient sweep background */
+    background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.85) 50%, rgba(255,255,255,0) 100%);
+    background-size: 320% 100%;
+    animation: kitt-scan-bg 1.3s ease-in-out infinite alternate;
+    will-change: background-position;
+    overflow: hidden;
+    vertical-align: middle;
+  }
+}
+
+@layer utilities {
+  /* Add custom utility classes here if needed */
+}
+
+/* Debug visual helpers – enabled when <body> has the `debug` class.
+   Gate via NEXT_PUBLIC_DEBUG in layout.tsx so this is dev-only. */
+.debug * { outline: 1px dashed rgba(0,0,0,.25); outline-offset: -1px; }
+.debug [data-flex] { background: repeating-linear-gradient(
+  45deg, rgba(0,128,255,.06), rgba(0,128,255,.06) 6px, transparent 6px, transparent 12px
+); }
+.debug [data-grid] { background: repeating-linear-gradient(
+  0deg, rgba(0,200,120,.06), rgba(0,200,120,.06) 6px, transparent 6px, transparent 12px
+); }
+.debug [data-pad] { box-shadow: inset 0 0 0 6px rgba(255,165,0,.15); }
+
+@keyframes kitt-sweep {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(calc(100% - 28px)); }
+}
+
+@keyframes kitt-scan-bg {
+  0% { background-position: 0% 0; }
+  100% { background-position: 100% 0; }
+}
+
+/* Ensure motion even if OS has reduced-motion enabled (dev UX only) */
+@media (prefers-reduced-motion: reduce) {
+  .kitt-bar { animation: kitt-sweep 0.9s ease-in-out infinite alternate !important; }
+}
