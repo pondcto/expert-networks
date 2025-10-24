@@ -12,7 +12,7 @@ export { default as ProposedExpertsPanel } from "./ProposedExpertsPanel";
 export { default as ExpertDetailsPanel } from "./ExpertDetailsPanel";
 
 // Re-export mock data for convenience
-export { mockVendors, mockExpertProfile } from "../../lib/mockData";
+export { mockVendorPlatforms, mockExpertProfile } from "../../data/mockData";
 
 // Type exports
 export type { ScreeningQuestionsPanelProps } from "./ScreeningQuestionsPanel";
@@ -28,6 +28,6 @@ export type {
   ResearchActivity,
   Source,
   AnswerSection,
-  Vendor,
+  VendorPlatform,
   ExpertProfile,
-} from "../../lib/mockData";
+} from "../../data/mockData";

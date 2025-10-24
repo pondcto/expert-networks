@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { mockChatMessages, type ChatMessage } from "../../lib/mockData";
+import { mockChatMessages, type ChatMessage } from "../../data/mockData";
 
 export interface DeepResearchChatPanelProps {
   messages?: ChatMessage[];

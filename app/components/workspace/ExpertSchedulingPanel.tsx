@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { Interview } from "../../types";
-import { ProposedExpert, mockVendors } from "../../lib/mockData";
+import { ProposedExpert, mockProposedExperts } from "../../data/mockData";
 import { 
   timeSlots, 
   daysOfWeek, 
@@ -18,7 +18,6 @@ import {
   isBefore
 } from "../../utils/dateUtils";
 import { mockInterviews } from "../../data";
-import { mockProposedExperts } from "../../lib/mockData";
 
 interface ExpertSchedulingPanelProps {
   selectedExpert?: ProposedExpert | null;

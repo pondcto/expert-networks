@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ProposedExpert } from "../../lib/mockData";
+import { ProposedExpert } from "../../data/mockData";
 import { Star, X, Minus } from "lucide-react";
 
 interface ExpertDetailsProps {

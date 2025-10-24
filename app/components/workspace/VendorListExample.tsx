@@ -1,18 +1,18 @@
 "use client";
 
 import React from "react";
-import { mockVendors, Vendor } from "../../lib/mockData";
+import { mockVendorPlatforms, VendorPlatform } from "../../data/mockData";
 
 /**
- * Example component demonstrating how to use shared mockVendors data
- * This shows how any component can now access the vendor data
+ * Example component demonstrating how to use shared mockVendorPlatforms data
+ * This shows how any component can now access the vendor platform data
  */
 export default function VendorListExample() {
   return (
     <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">Available Vendors (from shared mockData)</h2>
+      <h2 className="text-xl font-bold mb-4">Available Vendor Platforms (from shared mockData)</h2>
       <div className="space-y-2">
-        {mockVendors.map((vendor: Vendor) => (
+        {mockVendorPlatforms.map((vendor: VendorPlatform) => (
           <div key={vendor.id} className="border p-3 rounded">
             <div className="flex justify-between items-center">
               <div>

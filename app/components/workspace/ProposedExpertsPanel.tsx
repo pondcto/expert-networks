@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { mockProposedExperts, mockVendors, ProposedExpert, Vendor } from "../../lib/mockData";
+import { mockProposedExperts, mockVendorPlatforms, ProposedExpert, VendorPlatform } from "../../data/mockData";
 import { EyeIcon } from "lucide-react";
 
 interface ProposedExpertsPanelProps {
@@ -14,8 +14,8 @@ export default function ProposedExpertsPanel({ onExpertSelect, selectedExpertId 
   const [selectedExperts, setSelectedExperts] = useState<Set<string>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
 
-  const getVendorById = (vendorId: string): Vendor | undefined => {
-    return mockVendors.find(vendor => vendor.id === vendorId);
+  const getVendorById = (vendorId: string): VendorPlatform | undefined => {
+    return mockVendorPlatforms.find(vendor => vendor.id === vendorId);
   };
 
   const _handleExpertSelect = (expertId: string) => {

@@ -3,11 +3,11 @@
 import React, { useState, useEffect } from "react";
 import { Star, MapPin, X, Globe, MessageCircle, ArrowUpDown } from "lucide-react";
 import { useCampaign } from "../../lib/campaign-context";
-import { mockVendors, Vendor } from "../../lib/mockData";
+import { mockVendorPlatforms, VendorPlatform } from "../../data/mockData";
 import Image from "next/image";
 
 export interface VendorSelectionPanelProps {
-  vendors?: Vendor[];
+  vendors?: VendorPlatform[];
   isConfirmButtonEnabled?: boolean;
   onSaveCampaign?: () => void;
   onDataChange?: (data: string[]) => void;
@@ -16,14 +16,14 @@ export interface VendorSelectionPanelProps {
 
 
 export default function VendorSelectionPanel({ 
-  vendors = mockVendors, 
+  vendors = mockVendorPlatforms, 
   onPanelFocus
 }: VendorSelectionPanelProps) {
   const [showVendorDetailsModal, setShowVendorDetailsModal] = useState<boolean>(false);
-  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
+  const [selectedVendor, setSelectedVendor] = useState<VendorPlatform | null>(null);
   const [enrolledVendors, setEnrolledVendors] = useState<Set<string>>(new Set());
   const [showEnrollmentModal, setShowEnrollmentModal] = useState<boolean>(false);
-  const [vendorToEnroll, setVendorToEnroll] = useState<Vendor | null>(null);
+  const [vendorToEnroll, setVendorToEnroll] = useState<VendorPlatform | null>(null);
   const [pendingVendors, setPendingVendors] = useState<Set<string>>(new Set());
   const [sortColumn, setSortColumn] = useState<'rank' | 'overallScore' | 'avgCostPerCall' | 'status' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -36,12 +36,12 @@ export default function VendorSelectionPanel({
     setEnrolledVendors(new Set(alreadyEnrolled));
   }, [vendors]);
 
-  const handleVendorClick = (vendor: Vendor) => {
+  const handleVendorClick = (vendor: VendorPlatform) => {
     setSelectedVendor(vendor);
     setShowVendorDetailsModal(true);
   };
 
-  const handleEnrollVendor = (e: React.MouseEvent<HTMLButtonElement>, vendor: Vendor) => {
+  const handleEnrollVendor = (e: React.MouseEvent<HTMLButtonElement>, vendor: VendorPlatform) => {
     e.stopPropagation();
     setVendorToEnroll(vendor);
     setShowEnrollmentModal(true);
@@ -69,7 +69,7 @@ export default function VendorSelectionPanel({
     setSelectedVendor(null);
   };
 
-  const getVendorStatus = (vendor: Vendor) => {
+  const getVendorStatus = (vendor: VendorPlatform) => {
     if (pendingVendors.has(vendor.id)) return "Pending";
     if (enrolledVendors.has(vendor.id)) return "Enrolled";
     return vendor.status;

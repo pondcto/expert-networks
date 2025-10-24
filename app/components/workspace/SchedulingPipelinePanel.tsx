@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { ProposedExpert, mockProposedExperts, mockVendors } from "../../lib/mockData";
+import { mockProposedExperts, mockVendorPlatforms } from "../../data/mockData";
 
 export default function SchedulingPipelinePanel() {
     // Randomly assign scheduling status for demo purposes
@@ -27,7 +27,7 @@ export default function SchedulingPipelinePanel() {
             <div className="flex-1 overflow-y-auto">
                 <div className="space-y-1">
                     {mockProposedExperts.slice(0, 7).map((pe, index) => {
-                        const vendor = mockVendors.find(v => v.id === pe.vendor_id);
+                        const vendor = mockVendorPlatforms.find(v => v.id === pe.vendor_id);
                         const schedulingStatus = getSchedulingStatus(index);
                         
                         return (

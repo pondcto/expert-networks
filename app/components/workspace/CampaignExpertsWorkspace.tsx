@@ -6,7 +6,7 @@ import { useCampaign } from "../../lib/campaign-context";
 import { usePathname } from "next/navigation";
 import { WorkspaceHeader } from "../layout";
 import { PanelSizing } from "../../types";
-import { ProposedExpert, mockProposedExperts } from "../../lib/mockData";
+import { ProposedExpert, mockProposedExperts } from "../../data/mockData";
 import CampaignMetricsCardPanel from "./CampaignMetricsCardPanel";
 import ProposedExpertsPanel from "./ProposedExpertsPanel";
 import ExpertDetailsPanel from "./ExpertDetailsPanel";
