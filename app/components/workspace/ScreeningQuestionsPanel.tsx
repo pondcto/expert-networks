@@ -201,7 +201,7 @@ export default function ScreeningQuestionsPanel({
     }
   };
 
-  const handleImportQuestions = () => {
+  const _handleImportQuestions = () => {
     onImportQuestions?.();
   };
 

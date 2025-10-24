@@ -1,6 +1,5 @@
 "use client";
 import React from "react";
-import { PanelSizing } from "../../types";
 
 interface ResizablePanelProps {
   children: React.ReactNode;

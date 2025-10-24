@@ -14,7 +14,8 @@ function CampaignSettingsContent({ campaignId }: { campaignId: string }) {
     if (campaignId) {
       loadCampaign(campaignId);
     }
-  }, [campaignId]); // Remove loadCampaign from dependencies to prevent infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campaignId]); // loadCampaign is intentionally excluded to prevent infinite loop
   
   return (
     <div className="h-full">

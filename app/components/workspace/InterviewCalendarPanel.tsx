@@ -185,7 +185,7 @@ export default function InterviewCalendarPanel() {
                 const isCurrentDay = isToday(day);
                 
                 // Check if this time slot is occupied by the single interview
-                const isOccupied = dayInterviews.some(interview => {
+                const _isOccupied = dayInterviews.some(interview => {
                   const startIndex = getTimeSlotPosition(interview.time);
                   const durationSlots = interview.duration / 60;
                   const occupiedSlots = Array.from({ length: durationSlots }, (_, i) => startIndex + i);

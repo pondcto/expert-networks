@@ -17,12 +17,8 @@ export interface VendorSelectionPanelProps {
 
 export default function VendorSelectionPanel({ 
   vendors = mockVendors, 
-  isConfirmButtonEnabled = false,
-  onSaveCampaign,
-  onDataChange,
   onPanelFocus
 }: VendorSelectionPanelProps) {
-  const { campaignData } = useCampaign();
   const [showVendorDetailsModal, setShowVendorDetailsModal] = useState<boolean>(false);
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [enrolledVendors, setEnrolledVendors] = useState<Set<string>>(new Set());
@@ -112,8 +108,8 @@ export default function VendorSelectionPanel({
     if (!sortColumn) return vendors;
 
     return [...vendors].sort((a, b) => {
-      let aValue: any;
-      let bValue: any;
+      let aValue: number | string;
+      let bValue: number | string;
 
       switch (sortColumn) {
         case 'rank':

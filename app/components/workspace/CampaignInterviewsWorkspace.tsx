@@ -10,7 +10,7 @@ import { PanelSizing } from "../../types";
 import SchedulingPipelinePanel from "./SchedulingPipelinePanel";
 import InterviewCalendarPanel from "./InterviewCalendarPanel";
 import CostBreakdownPanel from "./CostBreakdownPanel";
-import InterviewChatPanel from "./InterviewChatPanel";
+// import InterviewChatPanel from "./InterviewChatPanel"; // Temporarily unused
 import InterviewCompletedPanel from "./InterviewCompletedPanel";
 import CampaignMetricsCardPanel from "./CampaignMetricsCardPanel";
 import ChatHistoryPanel from "./ChatHistoryPanel";
@@ -41,42 +41,20 @@ export default function CampaignInterviewsWorkspace() {
   const setActivitiesWidth = (value: number) => setPanelSizing(prev => ({ ...prev, activitiesWidth: value }));
   const setSourcesWidth = (value: number) => setPanelSizing(prev => ({ ...prev, sourcesWidth: value }));
 
-  // Form completion states
-  const [campaignBasicsCompleted, setCampaignBasicsCompleted] = useState<boolean>(false);
-  const [scopeRefinementCompleted, setScopeRefinementCompleted] = useState<boolean>(false);
+  // Form completion states (temporarily unused)
+  const [_campaignBasicsCompleted, _setCampaignBasicsCompleted] = useState<boolean>(false);
+  const [_scopeRefinementCompleted, _setScopeRefinementCompleted] = useState<boolean>(false);
 
   // Reset form completion states when starting a new campaign
   useEffect(() => {
     if (isNewCampaign) {
-      setCampaignBasicsCompleted(false);
-      setScopeRefinementCompleted(false);
+      _setCampaignBasicsCompleted(false);
+      _setScopeRefinementCompleted(false);
     }
   }, [isNewCampaign]);
 
-  // Form completion handlers
-  const handleCampaignBasicsChange = (isCompleted: boolean) => {
-    setCampaignBasicsCompleted(isCompleted);
-  };
-
-  const handleScopeRefinementChange = (isCompleted: boolean) => {
-    setScopeRefinementCompleted(isCompleted);
-  };
-
-  // Additional data handlers for other panels
-  const handleTeamMembersChange = (data: unknown) => {
-    handleCampaignDataChange({ teamMembers: data as unknown[] });
-  };
-
-  const handleScreeningQuestionsChange = (data: unknown) => {
-    handleCampaignDataChange({ screeningQuestions: data as unknown[] });
-  };
-
-  const handleVendorSelectionChange = (data: unknown) => {
-    handleCampaignDataChange({ selectedVendors: data as string[] });
-  };
-
   // Campaign data handlers
-  const handleCampaignDataChange = (data: Partial<CampaignData>) => {
+  const _handleCampaignDataChange = (data: Partial<CampaignData>) => {
     console.log('Campaign data change:', data);
     setCampaignData((prev: CampaignData | null) => {
       if (!prev) {
@@ -91,7 +69,7 @@ export default function CampaignInterviewsWorkspace() {
     });
   };
 
-  const handleSaveCampaign = async () => {
+  const _handleSaveCampaign = async () => {
     try {
       // Ensure all current form data is saved before proceeding
       console.log('=== CAMPAIGN SAVE DEBUG ===');
@@ -124,20 +102,20 @@ export default function CampaignInterviewsWorkspace() {
     }
   };
 
-  // Navigation handlers
-  const handleNavigateToSettings = () => {
+  // Navigation handlers (temporarily unused)
+  const _handleNavigateToSettings = () => {
     if (campaignData?.id) {
       router.push(`/campaign/${campaignData.id}/settings`);
     }
   };
 
-  const handleNavigateToExperts = () => {
+  const _handleNavigateToExperts = () => {
     if (campaignData?.id) {
       router.push(`/campaign/${campaignData.id}/experts`);
     }
   };
 
-  const handleNavigateToInterviews = () => {
+  const _handleNavigateToInterviews = () => {
     if (campaignData?.id) {
       router.push(`/campaign/${campaignData.id}/interviews`);
     }
@@ -342,7 +320,8 @@ export default function CampaignInterviewsWorkspace() {
       window.removeEventListener("mousemove", onMoveHorizontal);
       window.removeEventListener("mouseup", onUpHorizontal);
     };
-  }, [draggingHorizontal]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draggingHorizontal]); // topHeight is intentionally omitted - used in callbacks
 
   // Get current tab based on pathname
   const getCurrentTab = () => {

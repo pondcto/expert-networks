@@ -13,7 +13,6 @@ interface ExpertCardProps {
 
 export default function ExpertCard({ 
   expert, 
-  showBadge = true, 
   onAction, 
   actionText = "View",
   actionIcon,

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { ChevronRight, ArrowUpDown, Download, Star, X } from "lucide-react";
 import { CompletedInterview } from "../../types";
 import { mockCompletedInterviews } from "../../data/mockData";

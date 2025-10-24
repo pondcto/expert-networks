@@ -142,20 +142,20 @@ export default function CampaignSettingsWorkspace() {
     }
   };
 
-  // Navigation handlers
-  const handleNavigateToSettings = () => {
+  // Navigation handlers (temporarily unused)
+  const _handleNavigateToSettings = () => {
     if (campaignData?.id) {
       router.push(`/campaign/${campaignData.id}/settings`);
     }
   };
 
-  const handleNavigateToExperts = () => {
+  const _handleNavigateToExperts = () => {
     if (campaignData?.id) {
       router.push(`/campaign/${campaignData.id}/experts`);
     }
   };
 
-  const handleNavigateToInterviews = () => {
+  const _handleNavigateToInterviews = () => {
     if (campaignData?.id) {
       router.push(`/campaign/${campaignData.id}/interviews`);
     }
@@ -360,7 +360,8 @@ export default function CampaignSettingsWorkspace() {
       window.removeEventListener("mousemove", onMoveHorizontal);
       window.removeEventListener("mouseup", onUpHorizontal);
     };
-  }, [draggingHorizontal]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draggingHorizontal]); // topHeight is intentionally omitted - used in callbacks
 
   // Get current tab based on pathname
   const getCurrentTab = () => {

@@ -18,7 +18,7 @@ export default function ProposedExpertsPanel({ onExpertSelect, selectedExpertId 
     return mockVendors.find(vendor => vendor.id === vendorId);
   };
 
-  const handleExpertSelect = (expertId: string) => {
+  const _handleExpertSelect = (expertId: string) => {
     const newSelected = new Set(selectedExperts);
     if (newSelected.has(expertId)) {
       newSelected.delete(expertId);
@@ -29,7 +29,7 @@ export default function ProposedExpertsPanel({ onExpertSelect, selectedExpertId 
     setSelectAll(newSelected.size === mockProposedExperts.length);
   };
 
-  const handleSelectAll = () => {
+  const _handleSelectAll = () => {
     if (selectAll) {
       setSelectedExperts(new Set());
       setSelectAll(false);

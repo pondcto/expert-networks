@@ -314,7 +314,7 @@ export default function ExpertSchedulingPanel({ selectedExpert }: ExpertScheduli
     setContextMenu(null);
   };
 
-  const handleCloseContextMenu = () => {
+  const _handleCloseContextMenu = () => {
     setContextMenu(null);
   };
 

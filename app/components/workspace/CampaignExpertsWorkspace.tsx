@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { GripVertical, GripHorizontal } from "lucide-react";
 import { useCampaign } from "../../lib/campaign-context";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { WorkspaceHeader } from "../layout";
 import { PanelSizing } from "../../types";
 import { ProposedExpert, mockProposedExperts } from "../../lib/mockData";
@@ -14,7 +14,6 @@ import ExpertSchedulingPanel from "./ExpertSchedulingPanel";
 
 export default function CampaignExpertsWorkspace() {
   const { campaignData, setCampaignData, isNewCampaign } = useCampaign();
-  const router = useRouter();
   const pathname = usePathname();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -158,7 +157,8 @@ export default function CampaignExpertsWorkspace() {
       window.removeEventListener("mousemove", onMoveHorizontal);
       window.removeEventListener("mouseup", onUpHorizontal);
     };
-  }, [draggingHorizontal]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draggingHorizontal]); // topHeight is intentionally omitted - used in callbacks
 
   // Get current tab based on pathname
   const getCurrentTab = () => {
