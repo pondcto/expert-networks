@@ -135,9 +135,10 @@ export default function ScopeRefinementPanel({
   
   // Helper to format date in local timezone (YYYY-MM-DD)
   const formatLocalDate = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()+1).padStart(2, '0');
+    const targetDate = new Date(date.getTime() + 24 * 60 * 60 * 1000);
+    const year = targetDate.getFullYear();
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const day = String(targetDate.getDate()).padStart(2, '0');
     console.log(`${year}-${month}-${day}`);
     return `${year}-${month}-${day}`;
   };
