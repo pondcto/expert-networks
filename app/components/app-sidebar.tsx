@@ -364,10 +364,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                               <ChevronDown className="h-3 w-3 text-light-text-tertiary dark:text-dark-text-tertiary" />
                                               <div className="flex-1 flex items-center justify-between">
                                                 <span className="font-medium">
-                                                  {project.projectName}
-                                                </span>
-                                                <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary ml-2">
-                                                  {project.campaigns.length}
+                                                  {project.projectName}({project.campaigns.length})
                                                 </span>
                                               </div>
                                             </div>
@@ -378,10 +375,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                               <ChevronRight className="h-3 w-3 text-light-text-tertiary dark:text-dark-text-tertiary" />
                                               <div className="flex-1 flex items-center justify-between">
                                                 <span className="font-medium">
-                                                  {project.projectName}
-                                                </span>
-                                                <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary ml-2">
-                                                  {project.campaigns.length}
+                                                  {project.projectName}({project.campaigns.length})
                                                 </span>
                                               </div>
                                             </div>
