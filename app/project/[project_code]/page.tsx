@@ -195,7 +195,7 @@ function ProjectDashboardContent() {
               Project Not Found
             </h2>
             <p className="text-light-text-secondary dark:text-dark-text-secondary mb-4">
-              The project "{projectCode}" does not exist.
+              The project &ldquo;{projectCode}&rdquo; does not exist.
             </p>
             <button onClick={() => router.push("/")} className="btn-primary">
               Go to Home

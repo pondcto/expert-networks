@@ -26,25 +26,44 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import NewProjectModal from "./NewProjectModal";
 
+// Type definitions
+interface Campaign {
+  id: string;
+  campaignName: string;
+  projectCode: string;
+  industryVertical: string;
+  startDate: string;
+  targetCompletionDate: string;
+  estimatedCalls: number;
+  teamMembers: { id: string; name: string; designation: string; avatar: string }[];
+  createdAt: string;
+  updatedAt: string;
+  order?: number;
+}
+
+interface Project {
+  projectCode: string;
+  projectName: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ProjectWithCampaigns extends Project {
+  campaigns: Campaign[];
+}
+
 // Helper function to get saved campaigns from localStorage
-const getSavedCampaigns = () => {
+const getSavedCampaigns = (): Campaign[] => {
   if (typeof window === 'undefined') return [];
   
-  const campaigns = [];
+  const campaigns: Campaign[] = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key && key.startsWith('campaign_')) {
       try {
         const campaignData = JSON.parse(localStorage.getItem(key) || '{}');
         if (campaignData.id && campaignData.campaignName) {
-          campaigns.push({
-            id: campaignData.id,
-            name: campaignData.campaignName,
-            projectCode: campaignData.projectCode || '',
-            industry: campaignData.industryVertical || 'Any',
-            description: campaignData.briefDescription || '',
-            createdAt: campaignData.createdAt || new Date().toISOString()
-          });
+          campaigns.push(campaignData as Campaign);
         }
       } catch (error) {
         console.error('Error parsing campaign data:', error);
@@ -56,17 +75,17 @@ const getSavedCampaigns = () => {
 };
 
 // Helper function to get saved projects from localStorage
-const getSavedProjects = () => {
+const getSavedProjects = (): Project[] => {
   if (typeof window === 'undefined') return [];
   
-  const projects = [];
+  const projects: Project[] = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key && key.startsWith('project_')) {
       try {
         const projectData = JSON.parse(localStorage.getItem(key) || '{}');
         if (projectData.projectCode && projectData.projectName) {
-          projects.push(projectData);
+          projects.push(projectData as Project);
         }
       } catch (error) {
         console.error('Error parsing project data:', error);
@@ -118,8 +137,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { setOpen, isMobile, state } = useSidebar();
   const [expandedProjects, setExpandedProjects] = React.useState<string[]>([]);
   const { setActiveNav, setHoverNav } = useNavigation();
-  const [savedCampaigns, setSavedCampaigns] = React.useState<unknown[]>([]);
-  const [savedProjects, setSavedProjects] = React.useState<unknown[]>([]);
+  const [savedCampaigns, setSavedCampaigns] = React.useState<Campaign[]>([]);
+  const [savedProjects, setSavedProjects] = React.useState<Project[]>([]);
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = React.useState(false);
 
   // Load saved campaigns and projects on component mount
@@ -161,10 +180,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   // Group campaigns by project
   const getProjectsWithCampaigns = () => {
-    const projectMap = new Map();
+    const projectMap = new Map<string, ProjectWithCampaigns>();
     
     // Add all saved projects
-    savedProjects.forEach((project: any) => {
+    savedProjects.forEach((project: Project) => {
       projectMap.set(project.projectCode, {
         ...project,
         campaigns: []
@@ -172,17 +191,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     });
 
     // Group campaigns by project
-    savedCampaigns.forEach((campaign: any) => {
+    savedCampaigns.forEach((campaign: Campaign) => {
       const projectCode = campaign.projectCode || '';
       
       if (projectCode && projectMap.has(projectCode)) {
         // Add campaign to existing project
-        projectMap.get(projectCode).campaigns.push(campaign);
+        projectMap.get(projectCode)!.campaigns.push(campaign);
       }
     });
 
     // Get campaigns without valid projects for "Other Campaigns" group
-    const campaignsWithoutProject = savedCampaigns.filter((campaign: any) => {
+    const campaignsWithoutProject = savedCampaigns.filter((campaign: Campaign) => {
       const projectCode = campaign.projectCode || '';
       return !projectCode || !projectMap.has(projectCode);
     });
@@ -326,7 +345,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                               return (
                                 <>
                                   {/* Projects */}
-                                  {projects.map((project: any) => (
+                                  {projects.map((project: ProjectWithCampaigns) => (
                                     <div key={project.projectCode}>
                                       {/* Project Header */}
                                       <div className="flex items-center">
@@ -364,7 +383,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                       {expandedProjects.includes(project.projectCode) && (
                                         <div className="ml-6 space-y-1">
                                           {project.campaigns.length > 0 ? (
-                                            project.campaigns.map((campaign: any) => {
+                                            project.campaigns.map((campaign: Campaign) => {
                                               const campaignHref = `/campaign/${campaign.id}/settings`;
                                               const isCampaignActive = pathname?.includes(`/campaign/${campaign.id}`);
                                               return (
@@ -379,13 +398,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                                   onClick={() => setActiveNav({ 
                                                     level1: item.title, 
                                                     level2: project.projectName, 
-                                                    level3: campaign.name || 'Unnamed Campaign'
+                                                    level3: campaign.campaignName || 'Unnamed Campaign'
                                                   })}
                                                 >
                                                   <div className="flex flex-col">
-                                                    <span className="font-medium">{campaign.name || 'Unnamed Campaign'}</span>
+                                                    <span className="font-medium">{campaign.campaignName || 'Unnamed Campaign'}</span>
                                                     <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary">
-                                                      {campaign.industry || 'No industry'}
+                                                      {campaign.industryVertical || 'No industry'}
                                                     </span>
                                                   </div>
                                                 </Link>
@@ -421,7 +440,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                       
                                       {expandedProjects.includes('other-campaigns') && (
                                         <div className="ml-6 space-y-1">
-                                          {campaignsWithoutProject.map((campaign: any) => {
+                                          {campaignsWithoutProject.map((campaign: Campaign) => {
                                             const campaignHref = `/campaign/${campaign.id}/settings`;
                                             const isCampaignActive = pathname?.includes(`/campaign/${campaign.id}`);
                                             return (
@@ -436,13 +455,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                                 onClick={() => setActiveNav({ 
                                                   level1: item.title, 
                                                   level2: 'Other Campaigns', 
-                                                  level3: campaign.name || 'Unnamed Campaign'
+                                                  level3: campaign.campaignName || 'Unnamed Campaign'
                                                 })}
                                               >
                                                 <div className="flex flex-col">
-                                                  <span className="font-medium">{campaign.name || 'Unnamed Campaign'}</span>
+                                                  <span className="font-medium">{campaign.campaignName || 'Unnamed Campaign'}</span>
                                                   <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary">
-                                                    {campaign.industry || 'No industry'}
+                                                    {campaign.industryVertical || 'No industry'}
                                                   </span>
                                                 </div>
                                               </Link>

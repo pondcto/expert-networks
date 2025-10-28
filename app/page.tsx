@@ -7,7 +7,7 @@ import Logo from "./components/Logo";
 import { useTheme } from "./providers/theme-provider";
 import UserMenu from "./components/UserMenu";
 import NewProjectModal from "./components/NewProjectModal";
-import { Sun, Moon, Users, Calendar, FolderOpen, Plus, ChevronDown, ChevronRight, DollarSign, GripVertical } from "lucide-react";
+import { Sun, Moon, Users, Calendar, FolderOpen, Plus, DollarSign, GripVertical } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   DndContext,
@@ -307,198 +307,6 @@ function DraggableCampaignCardRow({
   );
 }
 
-// Draggable Campaign Row Component (old table layout - keeping for reference)
-function DraggableCampaignRow({
-  campaign,
-  projectCode,
-  onDelete,
-  onNavigate,
-}: {
-  campaign: Campaign;
-  projectCode: string;
-  onDelete: (e: React.MouseEvent, campaignId: string) => void;
-  onNavigate: (campaignId: string) => void;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: campaign.id, data: { campaign, projectCode } });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  // Calculate campaign status based on dates
-  const getCampaignStatus = (campaign: Campaign) => {
-    const now = new Date();
-    const start = new Date(campaign.startDate);
-    const end = new Date(campaign.targetCompletionDate);
-
-    if (now < start) {
-      return { label: "Waiting for vendors", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300", isActive: false };
-    } else if (now >= start && now <= end) {
-      return { label: "Active", color: "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300", isActive: true };
-    } else {
-      return { label: "Completed", color: "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300", isActive: false };
-    }
-  };
-
-  // Calculate progress percentage for active campaigns
-  const calculateProgress = (campaign: Campaign): number => {
-    const now = new Date();
-    const start = new Date(campaign.startDate);
-    const end = new Date(campaign.targetCompletionDate);
-    
-    const totalDuration = end.getTime() - start.getTime();
-    const elapsed = now.getTime() - start.getTime();
-    
-    const progress = (elapsed / totalDuration) * 100;
-    return Math.min(Math.max(progress, 0), 100);
-  };
-
-  // Format date
-  const formatDate = (dateString: string) => {
-    if (!dateString || dateString === "Any") return "N/A";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  };
-
-  const status = getCampaignStatus(campaign);
-  const progress = status.isActive ? calculateProgress(campaign) : 0;
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="group flex gap-4 px-6 py-4 hover:bg-light-background dark:hover:bg-dark-background transition-colors border-b border-light-border dark:border-dark-border last:border-b-0"
-      onContextMenu={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onDelete(e, campaign.id);
-      }}
-    >
-      {/* Drag Handle */}
-      <div className="flex items-center cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
-        <GripVertical className="w-4 h-4 text-light-text-tertiary dark:text-dark-text-tertiary opacity-0 group-hover:opacity-100 transition-opacity" />
-      </div>
-
-      {/* Campaign Name */}
-      <div 
-        className="w-[20%] cursor-pointer"
-        onClick={() => onNavigate(campaign.id)}
-      >
-        <div className="font-medium text-light-text dark:text-dark-text">
-          {campaign.campaignName}
-        </div>
-        <div className="text-sm text-light-text-tertiary dark:text-dark-text-tertiary">
-          {campaign.projectCode}
-        </div>
-      </div>
-
-      {/* Status - Progress bar for active campaigns */}
-      <div 
-        className="w-[22%] flex items-center cursor-pointer"
-        onClick={() => onNavigate(campaign.id)}
-      >
-        {status.isActive ? (
-          <div className="w-full">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-medium text-green-600 dark:text-green-400">
-                Active
-              </span>
-              <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary">
-                {Math.round(progress)}%
-              </span>
-            </div>
-            <div className="w-full bg-light-background-secondary dark:bg-dark-background-secondary rounded-full h-2">
-              <div 
-                className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
-        ) : (
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${status.color}`}>
-            {status.label}
-          </span>
-        )}
-      </div>
-
-      {/* Timeline */}
-      <div 
-        className="w-[18%] flex items-center gap-1 cursor-pointer"
-        onClick={() => onNavigate(campaign.id)}
-      >
-        <Calendar className="w-4 h-4 text-light-text-tertiary dark:text-dark-text-tertiary flex-shrink-0" />
-        <div className="text-sm text-light-text dark:text-dark-text">
-          <div>{formatDate(campaign.startDate)}</div>
-          <div className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary">
-            to {formatDate(campaign.targetCompletionDate)}
-          </div>
-        </div>
-      </div>
-
-      {/* Team */}
-      <div 
-        className="w-[15%] flex items-center gap-2 cursor-pointer"
-        onClick={() => onNavigate(campaign.id)}
-      >
-        <Users className="w-4 h-4 text-light-text-tertiary dark:text-dark-text-tertiary flex-shrink-0" />
-        <div className="flex -space-x-2">
-          {campaign.teamMembers && campaign.teamMembers.length > 0 ? (
-            <>
-              {campaign.teamMembers.slice(0, 3).map((member) => (
-                <img
-                  key={member.id}
-                  src={member.avatar}
-                  alt={member.name}
-                  className="w-8 h-8 rounded-full border-2 border-light-surface dark:border-dark-surface object-cover"
-                  title={member.name}
-                />
-              ))}
-              {campaign.teamMembers.length > 3 && (
-                <div className="w-8 h-8 rounded-full border-2 border-light-surface dark:border-dark-surface bg-light-background-secondary dark:bg-dark-background-secondary flex items-center justify-center text-xs font-medium text-light-text dark:text-dark-text">
-                  +{campaign.teamMembers.length - 3}
-                </div>
-              )}
-            </>
-          ) : (
-            <span className="text-sm text-light-text-tertiary dark:text-dark-text-tertiary">
-              No team
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Calls */}
-      <div 
-        className="w-[8%] flex items-center cursor-pointer"
-        onClick={() => onNavigate(campaign.id)}
-      >
-        <span className="text-sm text-light-text dark:text-dark-text">
-          {campaign.estimatedCalls}
-        </span>
-      </div>
-
-      {/* Industry */}
-      <div 
-        className="w-[17%] flex items-center cursor-pointer"
-        onClick={() => onNavigate(campaign.id)}
-      >
-        <span className="text-sm text-light-text-tertiary dark:text-dark-text-tertiary truncate">
-          {campaign.industryVertical}
-        </span>
-      </div>
-    </div>
-  );
-}
-
 function HomeContent() {
   const { theme, toggleTheme } = useTheme();
   const router = useRouter();
@@ -569,13 +377,11 @@ function HomeContent() {
       });
       
       // Assign order within each project group
-      let hasChanges = false;
       projectGroups.forEach((campaigns) => {
         campaigns.forEach((campaign, index) => {
           if (campaign.order === undefined) {
             campaign.order = index;
             localStorage.setItem(`campaign_${campaign.id}`, JSON.stringify(campaign));
-            hasChanges = true;
           }
         });
       });
@@ -905,13 +711,6 @@ function HomeContent() {
     
     // Close modal
     setIsNewProjectModalOpen(false);
-  };
-
-  // Format date
-  const formatDate = (dateString: string) => {
-    if (!dateString || dateString === "Any") return "N/A";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   };
 
   // Get project info from localStorage
