@@ -17,7 +17,6 @@ export default function CampaignSettingsWorkspace() {
   const router = useRouter();
   const pathname = usePathname();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [hasAutoSaved, setHasAutoSaved] = useState(false);
 
   // Panel sizing states using optimized type
   const [panelSizing, setPanelSizing] = useState<PanelSizing>({
@@ -116,30 +115,18 @@ export default function CampaignSettingsWorkspace() {
       }
       
       const campaignId = await saveCampaign();
-      router.push(`/campaign/${campaignId}/experts`);
+      // Navigate to the campaign settings page after creation
+      router.push(`/campaign/${campaignId}/settings`);
     } catch (error) {
       console.error('Failed to save campaign:', error);
     }
   };
 
-  // Auto-save campaign when vendor panel is focused
-  const handleVendorPanelFocus = async () => {
-    // Only auto-save if this is a new campaign and we haven't saved yet
-    if (isNewCampaign && !hasAutoSaved && campaignData) {
-      try {
-        console.log('=== AUTO-SAVE CAMPAIGN ON VENDOR PANEL FOCUS ===');
-        console.log('Campaign data:', campaignData);
-        
-        setHasAutoSaved(true); // Prevent multiple auto-saves
-        const campaignId = await saveCampaign();
-        
-        // Navigate to the settings page with the new campaign ID
-        router.push(`/campaign/${campaignId}/settings`);
-      } catch (error) {
-        console.error('Failed to auto-save campaign:', error);
-        setHasAutoSaved(false); // Reset on error so user can try again
-      }
-    }
+  // Vendor panel focus handler (no auto-save - campaigns are created via explicit button click)
+  const handleVendorPanelFocus = () => {
+    // This handler is kept for potential future use but doesn't auto-save
+    // Campaigns should only be created when the user clicks "Create Campaign" button
+    console.log('Vendor panel focused - waiting for user to click Create Campaign');
   };
 
   // Navigation handlers (temporarily unused)
@@ -509,54 +496,54 @@ export default function CampaignSettingsWorkspace() {
             </button>
           ) : (
             <div style={{ height: `${100 - topHeight}%` }} className="w-full flex gap-px">
-            {/* Screening Questions Panel */}
-            {chatCollapsed ? (
-              <button
-                className="w-7 shrink-0 flex items-center justify-center bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border"
-                title="Expand Screening Questions"
-                onClick={() => setChatWidth(30)}
-              >
-                <span className="[writing-mode:vertical-rl] rotate-180 text-body-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary">
-                  Screening
-                </span>
-              </button>
-            ) : (
-              <div style={{ width: `${chatWidth}%` }} className="h-full">
-                <ScreeningQuestionsPanel onDataChange={handleScreeningQuestionsChange} />
-              </div>
-            )}
+              {/* Screening Questions Panel */}
+              {chatCollapsed ? (
+                <button
+                  className="w-7 shrink-0 flex items-center justify-center bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border"
+                  title="Expand Screening Questions"
+                  onClick={() => setChatWidth(30)}
+                >
+                  <span className="[writing-mode:vertical-rl] rotate-180 text-body-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary">
+                    Screening
+                  </span>
+                </button>
+              ) : (
+                <div style={{ width: `${chatWidth}%` }} className="h-full">
+                  <ScreeningQuestionsPanel onDataChange={handleScreeningQuestionsChange} />
+                </div>
+              )}
 
-            {/* Screening Questions/Vendor Selection Divider Handle */}
-            <div
-              className="w-[6px] shrink-0 relative cursor-col-resize select-none group flex items-center justify-center"
-              onMouseDown={onMouseDownChatAnswerDivider}
-            >
-              <div className="h-[1in] w-[10px] rounded-md border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface shadow-sm flex items-center justify-center">
-                <GripVertical className="h-3 w-3 text-light-text-tertiary dark:text-dark-text-tertiary group-hover:text-primary-500" />
-              </div>
-            </div>
-
-            {/* Vendor Selection Panel */}
-            {answerCollapsed ? (
-              <button
-                className="w-7 shrink-0 flex items-center justify-center bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border"
-                title="Expand Vendor Selection"
-                onClick={() => setAnswerWidth(70)}
+              {/* Screening Questions/Vendor Selection Divider Handle */}
+              <div
+                className="w-[6px] shrink-0 relative cursor-col-resize select-none group flex items-center justify-center"
+                onMouseDown={onMouseDownChatAnswerDivider}
               >
-                <span className="[writing-mode:vertical-rl] rotate-180 text-body-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary">
-                  Vendor Selection
-                </span>
-              </button>
-            ) : (
-              <div style={{ width: `${answerWidth}%` }} className="h-full">
-                <VendorSelectionPanel 
-                  isConfirmButtonEnabled={campaignBasicsCompleted && scopeRefinementCompleted}
-                  onSaveCampaign={handleSaveCampaign}
-                  onDataChange={handleVendorSelectionChange}
-                  onPanelFocus={handleVendorPanelFocus}
-                />
+                <div className="h-[1in] w-[10px] rounded-md border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface shadow-sm flex items-center justify-center">
+                  <GripVertical className="h-3 w-3 text-light-text-tertiary dark:text-dark-text-tertiary group-hover:text-primary-500" />
+                </div>
               </div>
-            )}
+
+              {/* Vendor Selection Panel */}
+              {answerCollapsed ? (
+                <button
+                  className="w-7 shrink-0 flex items-center justify-center bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border"
+                  title="Expand Vendor Selection"
+                  onClick={() => setAnswerWidth(70)}
+                >
+                  <span className="[writing-mode:vertical-rl] rotate-180 text-body-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary">
+                    Vendor Selection
+                  </span>
+                </button>
+              ) : (
+                <div style={{ width: `${answerWidth}%` }} className="h-full">
+                  <VendorSelectionPanel 
+                    isConfirmButtonEnabled={campaignBasicsCompleted && scopeRefinementCompleted}
+                    onSaveCampaign={handleSaveCampaign}
+                    onDataChange={handleVendorSelectionChange}
+                    onPanelFocus={handleVendorPanelFocus}
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>

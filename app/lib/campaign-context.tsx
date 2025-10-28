@@ -25,7 +25,7 @@ export interface CampaignData {
 interface CampaignContextType {
   campaignData: CampaignData | null;
   setCampaignData: (data: CampaignData | ((prev: CampaignData | null) => CampaignData)) => void;
-  saveCampaign: () => Promise<string>;
+  saveCampaign: (dataToSave?: Partial<CampaignData>) => Promise<string>;
   loadCampaign: (campaignId: string) => Promise<void>;
   isNewCampaign: boolean;
   setIsNewCampaign: (isNew: boolean) => void;
@@ -46,17 +46,22 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Memoize saveCampaign to prevent infinite loops in components that depend on it
-  const saveCampaign = useCallback(async (): Promise<string> => {
-    if (!campaignData) {
+  const saveCampaign = useCallback(async (dataToSave?: Partial<CampaignData>): Promise<string> => {
+    // Merge the provided data with current campaign data
+    const mergedData = dataToSave 
+      ? { ...campaignData, ...dataToSave } as CampaignData
+      : campaignData;
+
+    if (!mergedData) {
       throw new Error('No campaign data to save');
     }
 
     const now = new Date().toISOString();
-    const campaignId = campaignData.id || generateCampaignId();
+    const campaignId = mergedData.id || generateCampaignId();
     const campaignToSave = {
-      ...campaignData,
+      ...mergedData,
       id: campaignId,
-      createdAt: campaignData.createdAt || now,
+      createdAt: mergedData.createdAt || now,
       updatedAt: now,
     };
 

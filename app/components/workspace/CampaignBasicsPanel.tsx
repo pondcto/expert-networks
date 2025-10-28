@@ -38,7 +38,7 @@ export default function CampaignBasicsPanel({
   onFormChange,
   onDataChange,
 }: CampaignBasicsPanelProps) {
-  const { campaignData } = useCampaign();
+  const { campaignData, saveCampaign, isNewCampaign } = useCampaign();
   const [formData, setFormData] = useState<CampaignData>({
     campaignName: "",
     projectCode: "",
@@ -47,10 +47,11 @@ export default function CampaignBasicsPanel({
     briefDescription: "",
     expandedDescription: ""
   });
+  const [isEditing, setIsEditing] = useState(false);
 
-  // Load campaign data when it becomes available
+  // Load campaign data when it becomes available (but not while user is editing)
   useEffect(() => {
-    if (campaignData) {
+    if (campaignData && !isEditing) {
       setFormData({
         campaignName: campaignData.campaignName || "",
         projectCode: campaignData.projectCode || "",
@@ -60,7 +61,7 @@ export default function CampaignBasicsPanel({
         expandedDescription: campaignData.expandedDescription || ""
       });
     }
-  }, [campaignData]);
+  }, [campaignData, isEditing]);
 
   const handleInputChange = (field: keyof CampaignData, value: string) => {
     const newData = {
@@ -70,6 +71,24 @@ export default function CampaignBasicsPanel({
     console.log('CampaignBasics data change:', newData);
     setFormData(newData);
     onDataChange?.(newData);
+  };
+
+  // Mark as editing when user focuses on a field
+  const handleFocus = () => {
+    setIsEditing(true);
+  };
+
+  // Auto-save on blur for existing campaigns
+  const handleBlur = async () => {
+    setIsEditing(false);
+    if (!isNewCampaign && campaignData?.id) {
+      try {
+        console.log('Auto-saving campaign on blur (Campaign Basics)...');
+        await saveCampaign();
+      } catch (error) {
+        console.error('Failed to auto-save campaign:', error);
+      }
+    }
   };
 
   // Check form completion and notify parent
@@ -107,6 +126,8 @@ export default function CampaignBasicsPanel({
                 type="text"
                 value={formData.campaignName}
                 onChange={(e) => handleInputChange("campaignName", e.target.value)}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
                 placeholder="Campaign name, example: Company - Market Analysis"
                 className="w-full px-2 py-1   dark:bg-dark-background-secondary border border-light-border dark:border-dark-border rounded text-light-text dark:text-dark-text placeholder-light-text-tertiary dark:placeholder-dark-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent"
               />
@@ -121,6 +142,8 @@ export default function CampaignBasicsPanel({
                 type="text"
                 value={formData.projectCode}
                 onChange={(e) => handleInputChange("projectCode", e.target.value)}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
                 placeholder="Project code"
                 className="w-full px-2 py-1   dark:bg-dark-background-secondary border border-light-border dark:border-dark-border rounded text-light-text dark:text-dark-text placeholder-light-text-tertiary dark:placeholder-dark-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent"
               />
@@ -136,6 +159,8 @@ export default function CampaignBasicsPanel({
               <select
                 value={formData.industryVertical}
                 onChange={(e) => handleInputChange("industryVertical", e.target.value)}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
                 className="w-full px-2 py-1   dark:bg-dark-background-secondary border border-light-border dark:border-dark-border rounded text-light-text dark:text-dark-text focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent appearance-none cursor-pointer"
               >
                 {industryOptions.map((option) => (
@@ -156,6 +181,8 @@ export default function CampaignBasicsPanel({
                   type="text"
                   value={formData.customIndustry || ""}
                   onChange={(e) => handleInputChange("customIndustry", e.target.value)}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
                   placeholder="Please specify your industry..."
                   className="w-full px-2 py-1 dark:bg-dark-background-secondary border border-light-border dark:border-dark-border rounded text-light-text dark:text-dark-text placeholder-light-text-tertiary dark:placeholder-dark-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent"
                   autoFocus
@@ -173,6 +200,8 @@ export default function CampaignBasicsPanel({
               type="text"
               value={formData.briefDescription}
               onChange={(e) => handleInputChange("briefDescription", e.target.value)}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
               placeholder="One-line description of your campaign"
               className="w-full px-2 py-1   dark:bg-dark-background-secondary border border-light-border dark:border-dark-border rounded text-light-text dark:text-dark-text placeholder-light-text-tertiary dark:placeholder-dark-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent"
             />
@@ -186,6 +215,8 @@ export default function CampaignBasicsPanel({
             <textarea
               value={formData.expandedDescription}
               onChange={(e) => handleInputChange("expandedDescription", e.target.value)}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
               placeholder="Provide additional context for your campaign brief..."
               rows={3}
               className="w-full px-2 py-1   dark:bg-dark-background-secondary border border-light-border dark:border-dark-border rounded text-light-text dark:text-dark-text placeholder-light-text-tertiary dark:placeholder-dark-text-tertiary focus:outline-none resize-none focus:ring-1 focus:ring-primary-500 focus:border-transparent"

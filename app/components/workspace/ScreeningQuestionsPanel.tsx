@@ -170,7 +170,7 @@ export default function ScreeningQuestionsPanel({
   onImportQuestions,
   onDataChange,
 }: ScreeningQuestionsPanelProps) {
-  const { campaignData } = useCampaign();
+  const { campaignData, saveCampaign, isNewCampaign } = useCampaign();
   const [currentQuestions, setCurrentQuestions] = useState<ScreeningQuestion[]>(questions);
   const [newQuestionText, setNewQuestionText] = useState("");
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
@@ -179,14 +179,26 @@ export default function ScreeningQuestionsPanel({
   const [addingSubQuestionTo, setAddingSubQuestionTo] = useState<string | null>(null);
   const [newSubQuestionText, setNewSubQuestionText] = useState("");
 
-  // Load campaign data when it becomes available
+  // Load campaign data when it becomes available (but not while editing a question)
   useEffect(() => {
-    if (campaignData && campaignData.screeningQuestions) {
+    if (campaignData && campaignData.screeningQuestions && !editingQuestionId) {
       setCurrentQuestions(campaignData.screeningQuestions as ScreeningQuestion[]);
     }
-  }, [campaignData]);
+  }, [campaignData, editingQuestionId]);
 
-  const handleAddQuestion = () => {
+  // Auto-save helper for existing campaigns
+  const autoSave = async (newQuestions: ScreeningQuestion[]) => {
+    if (!isNewCampaign && campaignData?.id) {
+      try {
+        console.log('Auto-saving campaign after screening questions change...');
+        await saveCampaign({ screeningQuestions: newQuestions });
+      } catch (error) {
+        console.error('Failed to auto-save campaign:', error);
+      }
+    }
+  };
+
+  const handleAddQuestion = async () => {
     if (newQuestionText.trim()) {
       const newQuestion: ScreeningQuestion = {
         id: Date.now().toString(),
@@ -198,6 +210,7 @@ export default function ScreeningQuestionsPanel({
       setNewQuestionText("");
       onAddQuestion?.(newQuestion);
       onDataChange?.(newQuestions);
+      await autoSave(newQuestions);
     }
   };
 
@@ -213,7 +226,7 @@ export default function ScreeningQuestionsPanel({
     }
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (editingQuestionId && editingText.trim()) {
       const newQuestions = currentQuestions.map(q => 
         q.id === editingQuestionId 
@@ -224,6 +237,7 @@ export default function ScreeningQuestionsPanel({
       setEditingQuestionId(null);
       setEditingText("");
       onDataChange?.(newQuestions);
+      await autoSave(newQuestions);
     }
   };
 
@@ -232,14 +246,15 @@ export default function ScreeningQuestionsPanel({
     setEditingText("");
   };
 
-  const handleDeleteQuestion = (questionId: string) => {
+  const handleDeleteQuestion = async (questionId: string) => {
     const newQuestions = currentQuestions.filter(q => q.id !== questionId);
     setCurrentQuestions(newQuestions);
     onDataChange?.(newQuestions);
+    await autoSave(newQuestions);
   };
 
   // Sub-question handlers
-  const handleAddSubQuestion = (parentId: string) => {
+  const handleAddSubQuestion = async (parentId: string) => {
     if (newSubQuestionText.trim()) {
       const newSubQuestion: ScreeningQuestion = {
         id: Date.now().toString(),
@@ -261,6 +276,7 @@ export default function ScreeningQuestionsPanel({
       setNewSubQuestionText("");
       setAddingSubQuestionTo(null);
       onDataChange?.(newQuestions);
+      await autoSave(newQuestions);
     }
   };
 
@@ -277,7 +293,7 @@ export default function ScreeningQuestionsPanel({
     }
   };
 
-  const handleEditSubQuestion = (parentId: string, subQuestionId: string, newText: string) => {
+  const handleEditSubQuestion = async (parentId: string, subQuestionId: string, newText: string) => {
     const newQuestions = currentQuestions.map(q => {
       if (q.id === parentId) {
         return {
@@ -292,9 +308,10 @@ export default function ScreeningQuestionsPanel({
     
     setCurrentQuestions(newQuestions);
     onDataChange?.(newQuestions);
+    await autoSave(newQuestions);
   };
 
-  const handleDeleteSubQuestion = (parentId: string, subQuestionId: string) => {
+  const handleDeleteSubQuestion = async (parentId: string, subQuestionId: string) => {
     const newQuestions = currentQuestions.map(q => {
       if (q.id === parentId) {
         return {
@@ -307,6 +324,7 @@ export default function ScreeningQuestionsPanel({
     
     setCurrentQuestions(newQuestions);
     onDataChange?.(newQuestions);
+    await autoSave(newQuestions);
   };
 
   return (

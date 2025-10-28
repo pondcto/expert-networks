@@ -24,6 +24,7 @@ import { useNavigation } from "./navigation-context"
 import { useSidebar } from "@/components/ui/sidebar"
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import NewProjectModal from "./NewProjectModal";
 
 // Helper function to get saved campaigns from localStorage
 const getSavedCampaigns = () => {
@@ -39,6 +40,7 @@ const getSavedCampaigns = () => {
           campaigns.push({
             id: campaignData.id,
             name: campaignData.campaignName,
+            projectCode: campaignData.projectCode || '',
             industry: campaignData.industryVertical || 'Any',
             description: campaignData.briefDescription || '',
             createdAt: campaignData.createdAt || new Date().toISOString()
@@ -51,6 +53,27 @@ const getSavedCampaigns = () => {
   }
   console.log('Campaigns:', campaigns);
   return campaigns.sort((a, b) => b.createdAt.localeCompare(a.createdAt)); // Sort by newest first
+};
+
+// Helper function to get saved projects from localStorage
+const getSavedProjects = () => {
+  if (typeof window === 'undefined') return [];
+  
+  const projects = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('project_')) {
+      try {
+        const projectData = JSON.parse(localStorage.getItem(key) || '{}');
+        if (projectData.projectCode && projectData.projectName) {
+          projects.push(projectData);
+        }
+      } catch (error) {
+        console.error('Error parsing project data:', error);
+      }
+    }
+  }
+  return projects.sort((a, b) => b.createdAt.localeCompare(a.createdAt)); // Sort by newest first
 };
 
 const menuItems = [
@@ -93,25 +116,38 @@ const bottomMenuItems = [
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const { setOpen, isMobile, state } = useSidebar();
-  const [expandedProjects, setExpandedProjects] = React.useState<string[]>(['recent-campaigns']);
+  const [expandedProjects, setExpandedProjects] = React.useState<string[]>([]);
   const { setActiveNav, setHoverNav } = useNavigation();
   const [savedCampaigns, setSavedCampaigns] = React.useState<unknown[]>([]);
+  const [savedProjects, setSavedProjects] = React.useState<unknown[]>([]);
+  const [isNewProjectModalOpen, setIsNewProjectModalOpen] = React.useState(false);
 
-  // Load saved campaigns on component mount
+  // Load saved campaigns and projects on component mount
   React.useEffect(() => {
     const campaigns = getSavedCampaigns();
+    const projects = getSavedProjects();
     setSavedCampaigns(campaigns);
+    setSavedProjects(projects);
   }, []); // Only load once on mount
 
-  // Listen for campaign save events to refresh the list
+  // Listen for campaign and project save events to refresh the list
   React.useEffect(() => {
     const handleCampaignSaved = () => {
       const campaigns = getSavedCampaigns();
       setSavedCampaigns(campaigns);
     };
 
+    const handleProjectSaved = () => {
+      const projects = getSavedProjects();
+      setSavedProjects(projects);
+    };
+
     window.addEventListener('campaignSaved', handleCampaignSaved);
-    return () => window.removeEventListener('campaignSaved', handleCampaignSaved);
+    window.addEventListener('projectSaved', handleProjectSaved);
+    return () => {
+      window.removeEventListener('campaignSaved', handleCampaignSaved);
+      window.removeEventListener('projectSaved', handleProjectSaved);
+    };
   }, []);
 
   // Helper to toggle project expansion
@@ -121,6 +157,66 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         ? prev.filter(id => id !== projectId)
         : [...prev, projectId]
     );
+  };
+
+  // Group campaigns by project
+  const getProjectsWithCampaigns = () => {
+    const projectMap = new Map();
+    
+    // Add all saved projects
+    savedProjects.forEach((project: any) => {
+      projectMap.set(project.projectCode, {
+        ...project,
+        campaigns: []
+      });
+    });
+
+    // Group campaigns by project
+    savedCampaigns.forEach((campaign: any) => {
+      const projectCode = campaign.projectCode || '';
+      
+      if (projectCode && projectMap.has(projectCode)) {
+        // Add campaign to existing project
+        projectMap.get(projectCode).campaigns.push(campaign);
+      }
+    });
+
+    // Get campaigns without valid projects for "Other Campaigns" group
+    const campaignsWithoutProject = savedCampaigns.filter((campaign: any) => {
+      const projectCode = campaign.projectCode || '';
+      return !projectCode || !projectMap.has(projectCode);
+    });
+
+    // Convert to array and sort by most recent
+    const projects = Array.from(projectMap.values()).sort((a, b) => 
+      b.createdAt.localeCompare(a.createdAt)
+    );
+
+    return { projects, campaignsWithoutProject };
+  };
+
+  // Handle new project creation
+  const handleNewProject = (projectData: { projectName: string; projectCode: string }) => {
+    const project = {
+      ...projectData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Save to localStorage
+    localStorage.setItem(`project_${projectData.projectCode}`, JSON.stringify(project));
+
+    // Dispatch event to update dashboard
+    window.dispatchEvent(new CustomEvent('projectSaved'));
+    
+    // Close modal
+    setIsNewProjectModalOpen(false);
+  };
+
+  // Handle new project button click
+  const handleNewProjectClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsNewProjectModalOpen(true);
   };
 
   return (
@@ -142,6 +238,23 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <div className="flex flex-col gap-2">
               {menuItems.map((item) => {
                 const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+                
+                if (item.id === "new-project") {
+                  return (
+                    <div
+                      key={item.id}
+                      className="h-10 w-full flex items-center justify-center relative"
+                    >
+                      <button
+                        onClick={handleNewProjectClick}
+                        className="p-2 rounded-md transition-all duration-200 hover:bg-primary-500/5 dark:hover:bg-primary-500/10"
+                      >
+                        <item.icon className="h-5 w-5 stroke-[1.5] transition-colors duration-200 text-light-text-tertiary dark:text-dark-text-tertiary hover:text-primary-500 dark:hover:text-primary-400" />
+                      </button>
+                    </div>
+                  );
+                }
+                
                 return (
                   <div
                     key={item.id}
@@ -205,60 +318,166 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                             </SidebarMenuButton>
                           </SidebarMenuItem>
                           
-                          {/* Recent Campaigns */}
+                          {/* Projects with Campaigns */}
                           <div className="ml-6 space-y-1">
-                            <button
-                              onClick={() => toggleProject('recent-campaigns')}
-                              className="flex items-center gap-2 w-full px-2 py-1.5 text-sm text-light-text-tertiary dark:text-dark-text-tertiary hover:text-light-text dark:hover:text-dark-text hover:bg-light-surface-hover dark:hover:bg-dark-surface-hover rounded transition-colors"
-                            >
-                              {expandedProjects.includes('recent-campaigns') ? (
-                                <ChevronDown className="h-3 w-3" />
-                              ) : (
-                                <ChevronRight className="h-3 w-3" />
-                              )}
-                              <span>AI-MR-2024-Q1</span>
-                            </button>
-                            
-                            {expandedProjects.includes('recent-campaigns') && (
-                              <div className="ml-6 space-y-1">
-                                {savedCampaigns.length > 0 ? (
-                                  savedCampaigns.map((campaign: unknown) => {
-                                    const campaignData = campaign as { id: string; name?: string; industry?: string };
-                                    const campaignHref = `/campaign/${campaignData.id}/settings`;
-                                    const isCampaignActive = pathname?.includes(`/campaign/${campaignData.id}`);
-                                    return (
-                                      <Link
-                                        key={campaignData.id}
-                                        href={campaignHref}
-                                        className={`block px-2 py-1.5 text-sm rounded transition-colors ${
-                                          isCampaignActive 
-                                            ? "bg-light-surface-active text-light-text dark:bg-dark-surface-active dark:text-dark-text" 
-                                            : "text-light-text-tertiary dark:text-dark-text-tertiary hover:text-light-text dark:hover:text-dark-text hover:bg-light-surface-hover dark:hover:bg-dark-surface-hover"
-                                        }`}
-                                        onClick={() => setActiveNav({ 
-                                          level1: item.title, 
-                                          level2: 'Recent Campaigns', 
-                                          level3: campaignData.name || 'Unnamed Campaign'
-                                        })}
-                                      >
-                                        <div className="flex flex-col">
-                                          <span className="font-medium">{campaignData.name || 'Unnamed Campaign'}</span>
-                                          <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary">
-                                            {campaignData.industry || 'No industry'}
-                                          </span>
+                            {(() => {
+                              const { projects, campaignsWithoutProject } = getProjectsWithCampaigns();
+                              
+                              return (
+                                <>
+                                  {/* Projects */}
+                                  {projects.map((project: any) => (
+                                    <div key={project.projectCode}>
+                                      {/* Project Header */}
+                                      <div className="flex items-center">
+                                        <button
+                                          onClick={() => toggleProject(project.projectCode)}
+                                          className="p-1 hover:bg-light-surface-hover dark:hover:bg-dark-surface-hover rounded transition-colors"
+                                        >
+                                          {expandedProjects.includes(project.projectCode) ? (
+                                            <ChevronDown className="h-3 w-3 text-light-text-tertiary dark:text-dark-text-tertiary" />
+                                          ) : (
+                                            <ChevronRight className="h-3 w-3 text-light-text-tertiary dark:text-dark-text-tertiary" />
+                                          )}
+                                        </button>
+                                        <Link
+                                          href={`/project/${project.projectCode}`}
+                                          className="flex items-center gap-2 flex-1 px-2 py-1.5 text-sm text-light-text-tertiary dark:text-dark-text-tertiary hover:text-light-text dark:hover:text-dark-text hover:bg-light-surface-hover dark:hover:bg-dark-surface-hover rounded transition-colors"
+                                          onClick={() => setActiveNav({ 
+                                            level1: item.title, 
+                                            level2: project.projectName
+                                          })}
+                                        >
+                                          <FolderOpen className="h-3 w-3 flex-shrink-0" />
+                                          <div className="flex-1 flex items-center justify-between">
+                                            <span className="font-medium">
+                                              {project.projectName} ({project.projectCode})
+                                            </span>
+                                            <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary ml-2">
+                                              {project.campaigns.length}
+                                            </span>
+                                          </div>
+                                        </Link>
+                                      </div>
+                                      
+                                      {/* Campaigns under Project */}
+                                      {expandedProjects.includes(project.projectCode) && (
+                                        <div className="ml-6 space-y-1">
+                                          {project.campaigns.length > 0 ? (
+                                            project.campaigns.map((campaign: any) => {
+                                              const campaignHref = `/campaign/${campaign.id}/settings`;
+                                              const isCampaignActive = pathname?.includes(`/campaign/${campaign.id}`);
+                                              return (
+                                                <Link
+                                                  key={campaign.id}
+                                                  href={campaignHref}
+                                                  className={`block px-2 py-1.5 text-sm rounded transition-colors ${
+                                                    isCampaignActive 
+                                                      ? "bg-light-surface-active text-light-text dark:bg-dark-surface-active dark:text-dark-text" 
+                                                      : "text-light-text-tertiary dark:text-dark-text-tertiary hover:text-light-text dark:hover:text-dark-text hover:bg-light-surface-hover dark:hover:bg-dark-surface-hover"
+                                                  }`}
+                                                  onClick={() => setActiveNav({ 
+                                                    level1: item.title, 
+                                                    level2: project.projectName, 
+                                                    level3: campaign.name || 'Unnamed Campaign'
+                                                  })}
+                                                >
+                                                  <div className="flex flex-col">
+                                                    <span className="font-medium">{campaign.name || 'Unnamed Campaign'}</span>
+                                                    <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary">
+                                                      {campaign.industry || 'No industry'}
+                                                    </span>
+                                                  </div>
+                                                </Link>
+                                              );
+                                            })
+                                          ) : (
+                                            <div className="px-2 py-1.5 text-xs text-light-text-tertiary dark:text-dark-text-tertiary italic">
+                                              No campaigns yet
+                                            </div>
+                                          )}
                                         </div>
-                                      </Link>
-                                    );
-                                  })
-                                ) : (
-                                  <div className="px-2 py-1.5 text-sm text-light-text-tertiary dark:text-dark-text-tertiary">
-                                    No campaigns yet
-                                  </div>
-                                )}
-                              </div>
-                            )}
+                                      )}
+                                    </div>
+                                  ))}
+                                  
+                                  {/* Other Campaigns (without project) */}
+                                  {campaignsWithoutProject.length > 0 && (
+                                    <div>
+                                      <button
+                                        onClick={() => toggleProject('other-campaigns')}
+                                        className="flex items-center gap-2 w-full px-2 py-1.5 text-sm text-light-text-tertiary dark:text-dark-text-tertiary hover:text-light-text dark:hover:text-dark-text hover:bg-light-surface-hover dark:hover:bg-dark-surface-hover rounded transition-colors"
+                                      >
+                                        {expandedProjects.includes('other-campaigns') ? (
+                                          <ChevronDown className="h-3 w-3" />
+                                        ) : (
+                                          <ChevronRight className="h-3 w-3" />
+                                        )}
+                                        <span>Other Campaigns</span>
+                                        <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary ml-auto">
+                                          {campaignsWithoutProject.length}
+                                        </span>
+                                      </button>
+                                      
+                                      {expandedProjects.includes('other-campaigns') && (
+                                        <div className="ml-6 space-y-1">
+                                          {campaignsWithoutProject.map((campaign: any) => {
+                                            const campaignHref = `/campaign/${campaign.id}/settings`;
+                                            const isCampaignActive = pathname?.includes(`/campaign/${campaign.id}`);
+                                            return (
+                                              <Link
+                                                key={campaign.id}
+                                                href={campaignHref}
+                                                className={`block px-2 py-1.5 text-sm rounded transition-colors ${
+                                                  isCampaignActive 
+                                                    ? "bg-light-surface-active text-light-text dark:bg-dark-surface-active dark:text-dark-text" 
+                                                    : "text-light-text-tertiary dark:text-dark-text-tertiary hover:text-light-text dark:hover:text-dark-text hover:bg-light-surface-hover dark:hover:bg-dark-surface-hover"
+                                                }`}
+                                                onClick={() => setActiveNav({ 
+                                                  level1: item.title, 
+                                                  level2: 'Other Campaigns', 
+                                                  level3: campaign.name || 'Unnamed Campaign'
+                                                })}
+                                              >
+                                                <div className="flex flex-col">
+                                                  <span className="font-medium">{campaign.name || 'Unnamed Campaign'}</span>
+                                                  <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary">
+                                                    {campaign.industry || 'No industry'}
+                                                  </span>
+                                                </div>
+                                              </Link>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                  
+                                  {/* No projects or campaigns */}
+                                  {projects.length === 0 && campaignsWithoutProject.length === 0 && (
+                                    <div className="px-2 py-1.5 text-sm text-light-text-tertiary dark:text-dark-text-tertiary">
+                                      No projects or campaigns yet
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()}
                           </div>
                         </div>
+                      );
+                    }
+                    
+                    if (item.id === "new-project") {
+                      return (
+                        <SidebarMenuItem key={item.id}>
+                          <SidebarMenuButton
+                            onClick={handleNewProjectClick}
+                            className="text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-surface-hover dark:hover:bg-dark-surface-hover cursor-pointer"
+                          >
+                            <item.icon className="h-4 w-4 stroke-[1.5]" />
+                            <span className="text-sm">{item.title}</span>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
                       );
                     }
                     
@@ -316,6 +535,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         )}
         <SidebarRail />
       </Sidebar>
+      
+      {/* New Project Modal */}
+      <NewProjectModal 
+        isOpen={isNewProjectModalOpen}
+        onClose={() => setIsNewProjectModalOpen(false)}
+        onSave={handleNewProject}
+      />
     </div>
   );
 }

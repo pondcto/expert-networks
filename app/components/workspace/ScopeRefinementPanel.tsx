@@ -40,7 +40,7 @@ export default function ScopeRefinementPanel({
   onFormChange,
   onDataChange,
 }: ScopeRefinementPanelProps) {
-  const { campaignData } = useCampaign();
+  const { campaignData, saveCampaign, isNewCampaign } = useCampaign();
   const [formData, setFormData] = useState<ScopeData>({
     targetRegions: [],
     startDate: "Any",
@@ -49,6 +49,7 @@ export default function ScopeRefinementPanel({
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const datePickerRef = useRef<HTMLDivElement>(null);
+  const [isEditing, setIsEditing] = useState(false);
   
   const [dateRange, setDateRange] = useState<Array<{ startDate: Date; endDate: Date; key: string }>>([
     {
@@ -58,14 +59,14 @@ export default function ScopeRefinementPanel({
     }
   ]);
 
-  // Load campaign data when it becomes available
+  // Load campaign data when it becomes available (but not while user is editing)
   useEffect(() => {
-    if (campaignData) {
+    if (campaignData && !isEditing) {
       setFormData({
         targetRegions: campaignData.targetRegions || [],
         startDate: campaignData.startDate || "Any",
         targetCompletionDate: campaignData.targetCompletionDate || "Any",
-        estimatedCalls: campaignData.estimatedCalls || 10
+        estimatedCalls: Number.isNaN(campaignData.estimatedCalls) || !campaignData.estimatedCalls ? 10 : campaignData.estimatedCalls
       });
       
       // Update date range if campaign has dates
@@ -78,7 +79,7 @@ export default function ScopeRefinementPanel({
         }]);
       }
     }
-  }, [campaignData]);
+  }, [campaignData, isEditing]);
   
   // Close date picker when clicking outside
   useEffect(() => {
@@ -97,7 +98,8 @@ export default function ScopeRefinementPanel({
     };
   }, [showDatePicker]);
 
-  const handleRegionChange = (region: string, checked: boolean) => {
+  const handleRegionChange = async (region: string, checked: boolean) => {
+    setIsEditing(false); // Allow reload after save
     const newData = {
       ...formData,
       targetRegions: checked 
@@ -106,6 +108,16 @@ export default function ScopeRefinementPanel({
     };
     setFormData(newData);
     onDataChange?.(newData);
+    
+    // Auto-save after region change - pass the new data directly
+    if (!isNewCampaign && campaignData?.id) {
+      try {
+        console.log('Auto-saving campaign after region change...');
+        await saveCampaign(newData);
+      } catch (error) {
+        console.error('Failed to auto-save campaign:', error);
+      }
+    }
   };
 
   const handleInputChange = (field: keyof ScopeData, value: string | number) => {
@@ -116,6 +128,24 @@ export default function ScopeRefinementPanel({
     console.log('ScopeRefinement data change:', newData);
     setFormData(newData);
     onDataChange?.(newData);
+  };
+
+  // Mark as editing when user focuses on a field
+  const handleFocus = () => {
+    setIsEditing(true);
+  };
+
+  // Auto-save on blur for existing campaigns
+  const handleBlur = async () => {
+    setIsEditing(false);
+    if (!isNewCampaign && campaignData?.id) {
+      try {
+        console.log('Auto-saving campaign on blur (Campaign Scope)...');
+        await saveCampaign();
+      } catch (error) {
+        console.error('Failed to auto-save campaign:', error);
+      }
+    }
   };
 
   // Check form completion and notify parent
@@ -143,9 +173,10 @@ export default function ScopeRefinementPanel({
     return `${year}-${month}-${day}`;
   };
   
-  const handleDateRangeChange = (ranges: RangeKeyDict) => {
+  const handleDateRangeChange = async (ranges: RangeKeyDict) => {
     const selection = ranges.selection;
     if (selection && selection.startDate && selection.endDate) {
+      setIsEditing(false); // Allow reload after save
       setDateRange([{
         startDate: selection.startDate,
         endDate: selection.endDate,
@@ -164,10 +195,21 @@ export default function ScopeRefinementPanel({
       
       setFormData(newData);
       onDataChange?.(newData);
+      
+      // Auto-save after date change - pass the new data directly
+      if (!isNewCampaign && campaignData?.id) {
+        try {
+          console.log('Auto-saving campaign after date change...');
+          await saveCampaign(newData);
+        } catch (error) {
+          console.error('Failed to auto-save campaign:', error);
+        }
+      }
     }
   };
   
-  const clearDates = () => {
+  const clearDates = async () => {
+    setIsEditing(false); // Allow reload after save
     const newData = {
       ...formData,
       startDate: "Any",
@@ -180,6 +222,16 @@ export default function ScopeRefinementPanel({
       endDate: new Date(),
       key: 'selection'
     }]);
+    
+    // Auto-save after clearing dates - pass the new data directly
+    if (!isNewCampaign && campaignData?.id) {
+      try {
+        console.log('Auto-saving campaign after clearing dates...');
+        await saveCampaign(newData);
+      } catch (error) {
+        console.error('Failed to auto-save campaign:', error);
+      }
+    }
   };
 
   return (
@@ -489,8 +541,10 @@ export default function ScopeRefinementPanel({
             </label>
             <input
               type="number"
-              value={formData.estimatedCalls}
+              value={Number.isNaN(formData.estimatedCalls) ? '' : formData.estimatedCalls}
               onChange={(e) => handleInputChange("estimatedCalls", parseInt(e.target.value) || 0)}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
               className="w-full px-2 py-1   dark:bg-dark-background-secondary border border-light-border dark:border-dark-border rounded text-light-text dark:text-dark-text placeholder-light-text-tertiary dark:placeholder-dark-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent"
             />
             <p className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary mt-1">

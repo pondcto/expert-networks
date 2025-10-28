@@ -89,18 +89,20 @@ export default function TeamMembersPanel({
   onInviteMore,
   onDataChange,
 }: TeamMembersPanelProps) {
-  const { campaignData } = useCampaign();
+  const { campaignData, saveCampaign, isNewCampaign } = useCampaign();
   const [showModal, setShowModal] = useState(false);
   const [filterText, setFilterText] = useState("");
   const [currentMembers, setCurrentMembers] = useState<TeamMember[]>(members);
   const [invitedMembers, setInvitedMembers] = useState<Set<string>>(new Set());
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Load campaign data when it becomes available
+  // Load campaign data when it becomes available (only once on mount)
   useEffect(() => {
-    if (campaignData && campaignData.teamMembers) {
+    if (campaignData && campaignData.teamMembers && !isInitialized) {
       setCurrentMembers(campaignData.teamMembers as TeamMember[]);
+      setIsInitialized(true);
     }
-  }, [campaignData]);
+  }, [campaignData, isInitialized]);
 
   const filteredMembers = availableMembers.filter(member =>
     (member.name.toLowerCase().includes(filterText.toLowerCase()) ||
@@ -117,7 +119,7 @@ export default function TeamMembersPanel({
     setFilterText("");
   };
 
-  const handleInviteMember = (member: TeamMember) => {
+  const handleInviteMember = async (member: TeamMember) => {
     // Add the member to the current team members list
     const newMembers = [...currentMembers, member];
     console.log('TeamMembers data change:', newMembers);
@@ -129,13 +131,23 @@ export default function TeamMembersPanel({
     // Notify parent of data change
     onDataChange?.(newMembers);
     
+    // Auto-save after adding member - pass the new data directly
+    if (!isNewCampaign && campaignData?.id) {
+      try {
+        console.log('Auto-saving campaign after adding team member...');
+        await saveCampaign({ teamMembers: newMembers });
+      } catch (error) {
+        console.error('Failed to auto-save campaign:', error);
+      }
+    }
+    
     // Optional: Call the onInviteMore callback if provided
     if (onInviteMore) {
       onInviteMore();
     }
   };
 
-  const handleDeleteMember = (memberId: string) => {
+  const handleDeleteMember = async (memberId: string) => {
     const newMembers = currentMembers.filter(member => member.id !== memberId);
     console.log('TeamMembers data change (delete):', newMembers);
     setCurrentMembers(newMembers);
@@ -149,6 +161,16 @@ export default function TeamMembersPanel({
     
     // Notify parent of data change
     onDataChange?.(newMembers);
+    
+    // Auto-save after removing member - pass the new data directly
+    if (!isNewCampaign && campaignData?.id) {
+      try {
+        console.log('Auto-saving campaign after removing team member...');
+        await saveCampaign({ teamMembers: newMembers });
+      } catch (error) {
+        console.error('Failed to auto-save campaign:', error);
+      }
+    }
   };
 
   return (

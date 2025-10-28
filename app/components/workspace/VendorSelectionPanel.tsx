@@ -17,8 +17,11 @@ export interface VendorSelectionPanelProps {
 
 export default function VendorSelectionPanel({ 
   vendors = mockVendorPlatforms, 
+  isConfirmButtonEnabled = true,
+  onSaveCampaign,
   onPanelFocus
 }: VendorSelectionPanelProps) {
+  const { isNewCampaign } = useCampaign();
   const [showVendorDetailsModal, setShowVendorDetailsModal] = useState<boolean>(false);
   const [selectedVendor, setSelectedVendor] = useState<VendorPlatform | null>(null);
   const [enrolledVendors, setEnrolledVendors] = useState<Set<string>>(new Set());
@@ -141,11 +144,82 @@ export default function VendorSelectionPanel({
 
   return (
     <div 
-      className="card h-full w-full flex flex-col overflow-hidden pb-0 px-3 pt-3"
+      className="card h-full w-full flex flex-col overflow-hidden pb-0 px-3 pt-3 relative"
       onClick={onPanelFocus}
       onFocus={onPanelFocus}
       tabIndex={0}
     >
+      {/* Overlay for new campaigns - stays visible until campaign is created */}
+      {isNewCampaign && (
+        <div className="absolute inset-0 bg-light-background/80 dark:bg-dark-background/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-lg">
+          <div className="bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg p-6 max-w-md text-center shadow-lg">
+            <h4 className="text-lg font-semibold text-light-text dark:text-dark-text mb-2">
+              {isConfirmButtonEnabled ? 'Ready to Create Campaign' : 'Complete Required Fields'}
+            </h4>
+            <p className="text-light-text-secondary dark:text-dark-text-secondary mb-4">
+              {isConfirmButtonEnabled 
+                ? 'All required fields are completed. Click the button below to create your campaign.'
+                : 'Please complete the following sections before creating your campaign:'}
+            </p>
+            <ul className="text-left space-y-2 mb-6">
+              <li className={`flex items-center gap-2 ${isConfirmButtonEnabled ? 'text-green-600 dark:text-green-400' : 'text-light-text dark:text-dark-text'}`}>
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  isConfirmButtonEnabled 
+                    ? 'bg-green-100 dark:bg-green-900/20' 
+                    : 'bg-primary-100 dark:bg-primary-900/20'
+                }`}>
+                  {isConfirmButtonEnabled ? (
+                    <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <span className="text-xs font-medium text-primary-600 dark:text-primary-400">1</span>
+                  )}
+                </div>
+                <span>Campaign Basics (Campaign name, Industry, etc.)</span>
+              </li>
+              <li className={`flex items-center gap-2 ${isConfirmButtonEnabled ? 'text-green-600 dark:text-green-400' : 'text-light-text dark:text-dark-text'}`}>
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  isConfirmButtonEnabled 
+                    ? 'bg-green-100 dark:bg-green-900/20' 
+                    : 'bg-primary-100 dark:bg-primary-900/20'
+                }`}>
+                  {isConfirmButtonEnabled ? (
+                    <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <span className="text-xs font-medium text-primary-600 dark:text-primary-400">2</span>
+                  )}
+                </div>
+                <span>Campaign Scope (Regions, Timeline, Estimated calls)</span>
+              </li>
+            </ul>
+            {onSaveCampaign && (
+              <button
+                onClick={onSaveCampaign}
+                disabled={!isConfirmButtonEnabled}
+                className={`flex items-center gap-2 justify-center w-full transition-all ${
+                  isConfirmButtonEnabled 
+                    ? 'btn-primary' 
+                    : 'btn-primary opacity-50 cursor-not-allowed'
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                </svg>
+                Create Campaign
+              </button>
+            )}
+            <p className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary mt-3">
+              {isConfirmButtonEnabled 
+                ? 'Your campaign will be created and you can continue with vendor selection and other details'
+                : 'Complete all required fields to enable this button'}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-title font-semibold text-light-text dark:text-dark-text">
           Vendor Selection
@@ -272,9 +346,9 @@ export default function VendorSelectionPanel({
               <div className="w-[80px] flex items-center justify-center">
                 <button
                   onClick={(e) => handleEnrollVendor(e, vendor)}
-                  disabled={getVendorStatus(vendor) === "Enrolled" || getVendorStatus(vendor) === "Pending"}
+                  disabled={!isConfirmButtonEnabled || getVendorStatus(vendor) === "Enrolled" || getVendorStatus(vendor) === "Pending"}
                   className={`w-20 px-3 py-2 text-xs rounded-md transition-colors ${
-                    getVendorStatus(vendor) === "Enrolled" || getVendorStatus(vendor) === "Pending"
+                    !isConfirmButtonEnabled || getVendorStatus(vendor) === "Enrolled" || getVendorStatus(vendor) === "Pending"
                       ? "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
                       : "bg-primary-500 hover:bg-primary-600 text-white"
                   }`}
