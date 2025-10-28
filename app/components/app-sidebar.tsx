@@ -355,31 +355,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                             e.stopPropagation();
                                             toggleProject(project.projectCode);
                                           }}
-                                          className="p-1 hover:bg-light-surface-hover dark:hover:bg-dark-surface-hover rounded transition-colors"
+                                          className="w-full flex items-center gap-2 px-1 py-1 text-sm text-light-text-tertiary dark:text-dark-text-tertiary hover:text-light-text dark:hover:text-dark-text hover:bg-light-surface-hover dark:hover:bg-dark-surface-hover rounded transition-colors text-left"
                                         >
                                           {expandedProjects.includes(project.projectCode) ? (
-                                            <div
-                                              className="flex items-center gap-2 flex-1 px-1 py-1 text-sm text-light-text-tertiary dark:text-dark-text-tertiary hover:text-light-text dark:hover:text-dark-text hover:bg-light-surface-hover dark:hover:bg-dark-surface-hover rounded transition-colors"
-                                            >
-                                              <ChevronDown className="h-3 w-3 text-light-text-tertiary dark:text-dark-text-tertiary" />
-                                              <div className="flex-1 flex items-center justify-between">
-                                                <span className="font-medium">
-                                                  {project.projectName}({project.campaigns.length})
-                                                </span>
-                                              </div>
-                                            </div>
+                                            <ChevronDown className="h-3 w-3 flex-shrink-0" />
                                           ) : (
-                                            <div
-                                              className="flex items-center gap-2 flex-1 px-1 py-1 text-sm text-light-text-tertiary dark:text-dark-text-tertiary hover:text-light-text dark:hover:text-dark-text hover:bg-light-surface-hover dark:hover:bg-dark-surface-hover rounded transition-colors"
-                                            >
-                                              <ChevronRight className="h-3 w-3 text-light-text-tertiary dark:text-dark-text-tertiary" />
-                                              <div className="flex-1 flex items-center justify-between">
-                                                <span className="font-medium">
-                                                  {project.projectName}({project.campaigns.length})
-                                                </span>
-                                              </div>
-                                            </div>
+                                            <ChevronRight className="h-3 w-3 flex-shrink-0" />
                                           )}
+                                          <span className="font-medium">
+                                            {project.projectName}
+                                          </span>
                                         </button>
                                         
                                       </div>
