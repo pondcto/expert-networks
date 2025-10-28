@@ -338,7 +338,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           </SidebarMenuItem>
                           
                           {/* Projects with Campaigns */}
-                          <div className="ml-6 space-y-1">
+                          <div className="ml-3 space-y-1">
                             {(() => {
                               const { projects, campaignsWithoutProject } = getProjectsWithCampaigns();
                               
@@ -350,38 +350,49 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                       {/* Project Header */}
                                       <div className="flex items-center">
                                         <button
-                                          onClick={() => toggleProject(project.projectCode)}
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            toggleProject(project.projectCode);
+                                          }}
                                           className="p-1 hover:bg-light-surface-hover dark:hover:bg-dark-surface-hover rounded transition-colors"
                                         >
                                           {expandedProjects.includes(project.projectCode) ? (
-                                            <ChevronDown className="h-3 w-3 text-light-text-tertiary dark:text-dark-text-tertiary" />
+                                            <div
+                                              className="flex items-center gap-2 flex-1 px-1 py-1 text-sm text-light-text-tertiary dark:text-dark-text-tertiary hover:text-light-text dark:hover:text-dark-text hover:bg-light-surface-hover dark:hover:bg-dark-surface-hover rounded transition-colors"
+                                            >
+                                              <ChevronDown className="h-3 w-3 text-light-text-tertiary dark:text-dark-text-tertiary" />
+                                              <div className="flex-1 flex items-center justify-between">
+                                                <span className="font-medium">
+                                                  {project.projectName}
+                                                </span>
+                                                <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary ml-2">
+                                                  {project.campaigns.length}
+                                                </span>
+                                              </div>
+                                            </div>
                                           ) : (
-                                            <ChevronRight className="h-3 w-3 text-light-text-tertiary dark:text-dark-text-tertiary" />
+                                            <div
+                                              className="flex items-center gap-2 flex-1 px-1 py-1 text-sm text-light-text-tertiary dark:text-dark-text-tertiary hover:text-light-text dark:hover:text-dark-text hover:bg-light-surface-hover dark:hover:bg-dark-surface-hover rounded transition-colors"
+                                            >
+                                              <ChevronRight className="h-3 w-3 text-light-text-tertiary dark:text-dark-text-tertiary" />
+                                              <div className="flex-1 flex items-center justify-between">
+                                                <span className="font-medium">
+                                                  {project.projectName}
+                                                </span>
+                                                <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary ml-2">
+                                                  {project.campaigns.length}
+                                                </span>
+                                              </div>
+                                            </div>
                                           )}
                                         </button>
-                                        <Link
-                                          href={`/project/${project.projectCode}`}
-                                          className="flex items-center gap-2 flex-1 px-2 py-1.5 text-sm text-light-text-tertiary dark:text-dark-text-tertiary hover:text-light-text dark:hover:text-dark-text hover:bg-light-surface-hover dark:hover:bg-dark-surface-hover rounded transition-colors"
-                                          onClick={() => setActiveNav({ 
-                                            level1: item.title, 
-                                            level2: project.projectName
-                                          })}
-                                        >
-                                          <FolderOpen className="h-3 w-3 flex-shrink-0" />
-                                          <div className="flex-1 flex items-center justify-between">
-                                            <span className="font-medium">
-                                              {project.projectName} ({project.projectCode})
-                                            </span>
-                                            <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary ml-2">
-                                              {project.campaigns.length}
-                                            </span>
-                                          </div>
-                                        </Link>
+                                        
                                       </div>
                                       
                                       {/* Campaigns under Project */}
                                       {expandedProjects.includes(project.projectCode) && (
-                                        <div className="ml-6 space-y-1">
+                                        <div className="ml-9 space-y-1">
                                           {project.campaigns.length > 0 ? (
                                             project.campaigns.map((campaign: Campaign) => {
                                               const campaignHref = `/campaign/${campaign.id}/settings`;
@@ -390,7 +401,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                                 <Link
                                                   key={campaign.id}
                                                   href={campaignHref}
-                                                  className={`block px-2 py-1.5 text-sm rounded transition-colors ${
+                                                  className={`block px-1 py-1 text-sm rounded transition-colors ${
                                                     isCampaignActive 
                                                       ? "bg-light-surface-active text-light-text dark:bg-dark-surface-active dark:text-dark-text" 
                                                       : "text-light-text-tertiary dark:text-dark-text-tertiary hover:text-light-text dark:hover:text-dark-text hover:bg-light-surface-hover dark:hover:bg-dark-surface-hover"
@@ -411,9 +422,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                               );
                                             })
                                           ) : (
-                                            <div className="px-2 py-1.5 text-xs text-light-text-tertiary dark:text-dark-text-tertiary italic">
-                                              No campaigns yet
-                                            </div>
+                                            <></>
                                           )}
                                         </div>
                                       )}
