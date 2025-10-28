@@ -364,7 +364,7 @@ export default function VendorSelectionPanel({
       {/* Vendor Details Modal */}
       {showVendorDetailsModal && selectedVendor && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
           onClick={handleCloseVendorDetailsModal}
         >
           <div 
@@ -518,7 +518,7 @@ export default function VendorSelectionPanel({
       {/* Enrollment Confirmation Modal */}
       {showEnrollmentModal && vendorToEnroll && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
           onClick={handleCancelEnrollment}
         >
           <div 

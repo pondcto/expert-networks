@@ -229,7 +229,7 @@ export default function TeamMembersPanel({
       {/* Invite Members Modal */}
       {showModal && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]"
           onClick={handleCloseModal}
         >
           <div 
