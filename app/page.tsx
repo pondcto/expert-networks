@@ -1,13 +1,13 @@
 "use client";
 
-import React, { Suspense, useEffect, useState, useRef, useCallback } from "react";
+import React, { Suspense, useEffect, useState, useRef } from "react";
 import { AppSidebar } from "./components/app-sidebar";
 import { SidebarInset } from "./components/ui/sidebar";
 import Logo from "./components/Logo";
 import { useTheme } from "./providers/theme-provider";
 import UserMenu from "./components/UserMenu";
 import NewProjectModal from "./components/NewProjectModal";
-import { Sun, Moon, Users, Calendar, FolderOpen, Plus, DollarSign, GripVertical } from "lucide-react";
+import { Sun, Moon, Users, Calendar, FolderOpen, Plus, DollarSign, ChevronDown, ChevronRight, Trash2, GripVertical } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   DndContext,
@@ -42,6 +42,14 @@ interface Campaign {
   order?: number;
 }
 
+interface Project {
+  projectCode: string;
+  projectName: string;
+  createdAt: string;
+  updatedAt: string;
+  order?: number;
+}
+
 interface ProjectGroup {
   projectCode: string;
   projectName: string;
@@ -50,6 +58,7 @@ interface ProjectGroup {
   totalBudget: number;
   totalSpent: number;
   isRealProject: boolean; // Whether this is an actual saved project or just a grouping
+  order?: number;
 }
 
 // Delete Confirmation Modal Component
@@ -131,7 +140,7 @@ function DroppableProjectSection({
   );
 }
 
-// Draggable Campaign Card Row Component (for column layout)
+// Draggable Campaign Card Row Component (single line display)
 function DraggableCampaignCardRow({
   campaign,
   projectCode,
@@ -186,124 +195,354 @@ function DraggableCampaignCardRow({
     return Math.min(Math.max(progress, 0), 100);
   };
 
+  // Format date range for timeline
+  const formatDateRange = (startDate: string, endDate: string) => {
+    if (!startDate || startDate === "Any") return "TBD";
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const startStr = start.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    const endStr = end.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    return `${startStr} - ${endStr}`;
+  };
+
+  // Calculate budget info
+  const avgCostPerCall = 1000;
+  const totalBudget = (campaign.estimatedCalls || 0) * avgCostPerCall;
   const status = getCampaignStatus(campaign);
-  const progress = status.isActive ? calculateProgress(campaign) : 0;
+  let totalSpent = 0;
+  
+  if (status.isActive) {
+    const progress = calculateProgress(campaign) / 100;
+    totalSpent = totalBudget * progress;
+  } else if (status.label === "Completed") {
+    totalSpent = totalBudget;
+  }
+  
+  const costPercentage = totalBudget > 0 ? Math.min(Math.round((totalSpent / totalBudget) * 100), 100) : 0;
+
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  // Get target regions (from campaign data if available)
+  const targetRegions = (campaign as any).targetRegions || ["North America", "Europe"];
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="group bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-lg p-3 hover:border-primary-500 dark:hover:border-primary-500 transition-all cursor-grab active:cursor-grabbing"
-      {...attributes} 
-      {...listeners}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onDelete(e, campaign.id);
-      }}
+      className="group flex items-center gap-3 ml-6 bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-lg p-1 hover:border-primary-500 dark:hover:border-primary-500 transition-all"
     >
-      <div className="flex items-start gap-2 mb-2">
-        <div 
-          className="flex-1 min-w-0 cursor-pointer"
-          onClick={(e) => {
-            e.stopPropagation();
-            onNavigate(campaign.id);
-          }}
-        >
-          <h4 className="font-medium text-sm text-light-text dark:text-dark-text truncate">
-            {campaign.campaignName}
-          </h4>
-          <p className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary truncate">
-            {campaign.industryVertical}
-          </p>
-        </div>
+      {/* Drag Handle */}
+      <div 
+        className="flex-shrink-0 w-4 cursor-grab active:cursor-grabbing"
+        {...attributes} 
+        {...listeners}
+      >
+        <GripVertical className="w-4 h-4 text-light-text-tertiary dark:text-dark-text-tertiary opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
 
-      {/* Status Badge or Progress */}
-      {status.isActive ? (
-        <div 
-          className="mb-2 cursor-pointer"
-          onClick={(e) => {
-            e.stopPropagation();
-            onNavigate(campaign.id);
-          }}
-        >
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-medium text-green-600 dark:text-green-400">
-              Active
-            </span>
-            <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary">
-              {Math.round(progress)}%
-            </span>
-          </div>
-          <div className="w-full bg-light-background-secondary dark:bg-dark-background-secondary rounded-full h-1">
-            <div 
-              className="bg-green-500 h-1 rounded-full transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
-      ) : (
-        <div 
-          className="mb-2 cursor-pointer"
-          onClick={(e) => {
-            e.stopPropagation();
-            onNavigate(campaign.id);
-          }}
-        >
-          <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${status.color}`}>
-            {status.label}
-          </span>
-        </div>
-      )}
-
-      {/* Campaign Details */}
+      {/* Campaign Name */}
       <div 
-        className="space-y-1 text-xs text-light-text-secondary dark:text-dark-text-secondary cursor-pointer"
+        className="flex-1 min-w-0 cursor-pointer"
         onClick={(e) => {
           e.stopPropagation();
           onNavigate(campaign.id);
         }}
       >
-        <div className="flex items-center justify-between">
-          <span className="flex items-center gap-1">
-            <Calendar className="w-3 h-3" />
-            Timeline
-          </span>
-          <span className="text-light-text-tertiary dark:text-dark-text-tertiary">
-            {campaign.startDate !== "Any" ? new Date(campaign.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "TBD"}
-          </span>
+        <h4 className="font-medium text-sm text-light-text dark:text-dark-text truncate">
+          {campaign.campaignName}
+        </h4>
+      </div>
+
+      {/* Industry */}
+      <div className="flex-1 min-w-0 text-center">
+        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate">
+          {campaign.industryVertical}
+        </p>
+      </div>
+
+      {/* Timeline */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1 text-xs text-light-text-secondary dark:text-dark-text-secondary">
+          <Calendar className="w-3 h-3 flex-shrink-0" />
+          <span className="truncate">{formatDateRange(campaign.startDate, campaign.targetCompletionDate)}</span>
         </div>
-        <div className="flex items-center justify-between">
-          <span>Estimated Calls</span>
-          <span className="font-medium text-light-text dark:text-dark-text">{campaign.estimatedCalls}</span>
-        </div>
-        {campaign.teamMembers && campaign.teamMembers.length > 0 && (
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1">
-              <Users className="w-3 h-3" />
-              Team
+      </div>
+
+      {/* Target Regions */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1">
+          {targetRegions.slice(0, 2).map((region: string, index: number) => (
+            <span 
+              key={index}
+              className="inline-block px-2 py-0.5 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded text-xs text-light-text-secondary dark:text-dark-text-secondary truncate max-w-[80px]"
+              title={region}
+            >
+              {region}
             </span>
-            <div className="flex -space-x-1">
-              {campaign.teamMembers.slice(0, 3).map((member) => (
-                <img
-                  key={member.id}
-                  src={member.avatar}
-                  alt={member.name}
-                  className="w-5 h-5 rounded-full border border-light-surface dark:border-dark-surface object-cover"
-                  title={member.name}
-                />
-              ))}
-              {campaign.teamMembers.length > 3 && (
-                <div className="w-5 h-5 rounded-full border border-light-surface dark:border-dark-surface bg-light-background-secondary dark:bg-dark-background-secondary flex items-center justify-center text-[10px] font-medium text-light-text dark:text-dark-text">
-                  +{campaign.teamMembers.length - 3}
-                </div>
-              )}
+          ))}
+          {targetRegions.length > 2 && (
+            <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary flex-shrink-0">
+              +{targetRegions.length - 2}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Budget / Cost Bar */}
+      <div className="flex-1 min-w-0">
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-light-text-tertiary dark:text-dark-text-tertiary">Budget</span>
+            <span className={`font-medium ${
+              costPercentage > 90 ? 'text-red-600 dark:text-red-400' : 
+              costPercentage > 75 ? 'text-orange-600 dark:text-orange-400' : 
+              'text-green-600 dark:text-green-400'
+            }`}>
+              {isNaN(costPercentage) ? 0 : costPercentage}%
+            </span>
+          </div>
+          <div className="w-full bg-light-background-secondary dark:bg-dark-background-secondary rounded-full h-1.5">
+            <div 
+              className={`h-1.5 rounded-full transition-all ${
+                costPercentage > 90 ? 'bg-red-500' : 
+                costPercentage > 75 ? 'bg-orange-500' : 
+                'bg-green-500'
+              }`}
+              style={{ width: `${isNaN(costPercentage) ? 0 : costPercentage}%` }}
+            />
+          </div>
+          <div className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary truncate">
+            {formatCurrency(totalSpent)} / {formatCurrency(totalBudget)}
+          </div>
+        </div>
+      </div>
+
+      {/* Status */}
+      <div className="flex-shrink-0 w-16 text-center">
+        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${status.color}`}>
+          {status.label}
+        </span>
+      </div>
+
+      {/* Calls */}
+      <div className="flex-shrink-0 w-20 text-center">
+        <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary whitespace-nowrap">
+          Calls: {campaign.estimatedCalls}
+        </span>
+      </div>
+
+      {/* Team */}
+      <div className="flex-shrink-0 w-20">
+        {campaign.teamMembers && campaign.teamMembers.length > 0 ? (
+          <div className="flex -space-x-1 justify-end">
+            {campaign.teamMembers.slice(0, 3).map((member) => (
+              <img
+                key={member.id}
+                src={member.avatar}
+                alt={member.name}
+                className="w-6 h-6 rounded-full border-2 border-light-background dark:border-dark-background object-cover"
+                title={member.name}
+              />
+            ))}
+            {campaign.teamMembers.length > 3 && (
+              <div className="w-6 h-6 rounded-full border-2 border-light-background dark:border-dark-background bg-light-background-secondary dark:bg-dark-background-secondary flex items-center justify-center text-[10px] font-medium text-light-text dark:text-dark-text">
+                +{campaign.teamMembers.length - 3}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div></div>
+        )}
+      </div>
+
+      {/* Delete Button */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(e, campaign.id);
+        }}
+        className="flex-shrink-0 w-8 h-8 p-1.5 text-light-text-tertiary dark:text-dark-text-tertiary hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors opacity-0 group-hover:opacity-100"
+        title="Delete campaign"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
+// Project Card Component with Toggle (Now Sortable)
+function ProjectCard({
+  project,
+  costPercentage,
+  campaignIds,
+  onDeleteProject,
+  onDeleteCampaign,
+  onNavigateToCampaign,
+  onNavigateToProject,
+  formatCurrency,
+}: {
+  project: ProjectGroup;
+  costPercentage: number;
+  campaignIds: string[];
+  onDeleteProject: (e: React.MouseEvent, projectCode: string, projectName: string) => void;
+  onDeleteCampaign: (e: React.MouseEvent, campaignId: string) => void;
+  onNavigateToCampaign: (campaignId: string) => void;
+  onNavigateToProject: (projectCode: string) => void;
+  formatCurrency: (amount: number) => string;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+    isOver,
+    active,
+  } = useSortable({ 
+    id: project.projectCode,
+    data: { type: 'project', project }
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  // Check if a project is being dragged and this card is the drop target
+  const isDraggingProject = active?.data?.current?.type === 'project';
+  const showDropIndicator = isDraggingProject && isOver && !isDragging;
+
+  return (
+    <DroppableProjectSection
+      projectCode={project.projectCode}
+      isExpanded={true}
+    >
+      <div 
+        ref={setNodeRef}
+        style={style}
+        className={`group w-full bg-light-surface dark:bg-dark-surface border ${
+          showDropIndicator 
+            ? 'border-primary-500 border-2 shadow-lg shadow-primary-500/20' 
+            : 'border-light-border dark:border-dark-border'
+        } rounded-lg shadow-card dark:shadow-card-dark overflow-hidden transition-all`}
+      >
+        {/* Project Header - Always Visible */}
+        <div className="p-1">
+          <div className="flex items-center gap-2">
+            {/* Drag Handle */}
+            <div 
+              className="flex-shrink-0 cursor-grab active:cursor-grabbing p-0.5"
+              {...attributes}
+              {...listeners}
+            >
+              <GripVertical className="w-4 h-4 text-light-text-tertiary dark:text-dark-text-tertiary opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsExpanded(!isExpanded);
+              }}
+              className="flex-shrink-0 p-0.5 hover:bg-light-surface-hover dark:hover:bg-dark-surface-hover rounded"
+            >
+              {isExpanded ? (
+                <ChevronDown className="w-4 h-4 text-light-text-tertiary dark:text-dark-text-tertiary" />
+              ) : (
+                <ChevronRight className="w-4 h-4 text-light-text-tertiary dark:text-dark-text-tertiary" />
+              )}
+            </button>
+
+            <div 
+              className="flex-1 min-w-0 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsExpanded(!isExpanded);
+              }}
+            >
+              {/* First Line: Project Name */}
+              <h3 className="text-base font-semibold text-light-text dark:text-dark-text truncate hover:opacity-80 transition-opacity">
+                {project.projectName}
+              </h3>
+              
+              {/* Second Line: Project Code and Summary */}
+              <div className="flex items-center gap-2 text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
+                {project.isRealProject && (
+                  <>
+                    <span className="text-light-text-tertiary dark:text-dark-text-tertiary">
+                      {project.projectCode}
+                    </span>
+                    <span>•</span>
+                  </>
+                )}
+                <span>
+                  {project.campaigns.length} campaign{project.campaigns.length !== 1 ? 's' : ''}
+                </span>
+                <span>•</span>
+                <span>
+                  {project.totalCalls} calls
+                </span>
+                <span>•</span>
+                <span className={`font-medium ${
+                  costPercentage > 90 ? 'text-red-600 dark:text-red-400' : 
+                  costPercentage > 75 ? 'text-orange-600 dark:text-orange-400' : 
+                  'text-green-600 dark:text-green-400'
+                }`}>
+                  {formatCurrency(project.totalSpent)} / {formatCurrency(project.totalBudget)}
+                </span>
+              </div>
+            </div>
+
+            {/* Delete Button */}
+            {project.isRealProject && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteProject(e, project.projectCode, project.projectName);
+                }}
+                className="flex-shrink-0 p-1.5 text-light-text-tertiary dark:text-dark-text-tertiary hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors opacity-0 group-hover:opacity-100"
+                title="Delete project"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Expanded Campaign List */}
+        {isExpanded && (
+          <div className="border-t border-light-border dark:border-dark-border">
+            <SortableContext
+              items={campaignIds}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="p-2 space-y-2">
+                {project.campaigns.map((campaign) => (
+                  <DraggableCampaignCardRow
+                    key={campaign.id}
+                    campaign={campaign}
+                    projectCode={project.projectCode}
+                    onDelete={onDeleteCampaign}
+                    onNavigate={onNavigateToCampaign}
+                  />
+                ))}
+              </div>
+            </SortableContext>
           </div>
         )}
       </div>
-    </div>
+    </DroppableProjectSection>
   );
 }
 
@@ -325,10 +564,6 @@ function HomeContent() {
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   
   const containerRef = useRef<HTMLDivElement>(null);
-  
-  // Project column widths (array of percentages that should sum to 100)
-  const [projectWidths, setProjectWidths] = useState<number[]>([]);
-  const [draggingDividerIndex, setDraggingDividerIndex] = useState<number | null>(null);
   
   // Memoize grouped projects to ensure consistency
   const [groupedProjects, setGroupedProjects] = useState<ProjectGroup[]>([]);
@@ -411,82 +646,7 @@ function HomeContent() {
   useEffect(() => {
     const projects = groupCampaignsByProject();
     setGroupedProjects(projects);
-    
-    if (projects.length > 0) {
-      // Only update if the number of projects changed
-      if (projectWidths.length !== projects.length) {
-        // All projects are expanded with 15vw each
-        const widths: number[] = projects.map(() => 15);
-        setProjectWidths(widths);
-      }
-    } else {
-      // No projects, clear widths
-      setProjectWidths([]);
-    }
   }, [campaigns]);
-
-  // Divider dragging logic
-  const onMouseDownDivider = useCallback((index: number) => (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDraggingDividerIndex(index);
-  }, []);
-
-  useEffect(() => {
-    function onMove(e: MouseEvent) {
-      if (draggingDividerIndex === null || !containerRef.current) return;
-      
-      const rect = containerRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      
-      // Calculate position as percentage of viewport width (since we use vw)
-      const xVw = (x / window.innerWidth) * 100;
-      
-      // Calculate cumulative width of all projects before this divider
-      let cumulativeVw = 0;
-      for (let i = 0; i < draggingDividerIndex; i++) {
-        cumulativeVw += projectWidths[i];
-      }
-      
-      // Calculate the new width for the project at draggingDividerIndex
-      const newWidth = Math.max(2, xVw - cumulativeVw); // Minimum 2vw
-      
-      // Update only the left column width
-      const newWidths = [...projectWidths];
-      newWidths[draggingDividerIndex] = newWidth;
-      setProjectWidths(newWidths);
-    }
-    
-    function onUp() {
-      if (draggingDividerIndex !== null) {
-        // When mouse is released, snap collapsed cards to 2vw
-        const newWidths = projectWidths.map(width => {
-          // If width is less than 5vw (collapsed threshold), snap to 2vw
-          if (width < 5 && width !== 2) {
-            return 2;
-          }
-          return width;
-        });
-        
-        // Only update if there's a change
-        if (JSON.stringify(newWidths) !== JSON.stringify(projectWidths)) {
-          setProjectWidths(newWidths);
-        }
-        
-        setDraggingDividerIndex(null);
-      }
-    }
-    
-    if (draggingDividerIndex !== null) {
-      window.addEventListener("mousemove", onMove);
-      window.addEventListener("mouseup", onUp);
-      
-      return () => {
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("mouseup", onUp);
-      };
-    }
-  }, [draggingDividerIndex, projectWidths]);
 
   // Calculate campaign status based on dates
   const getCampaignStatus = (campaign: Campaign) => {
@@ -527,8 +687,59 @@ function HomeContent() {
 
     if (!over) return;
 
-    const draggedCampaignId = active.id as string;
-    const overItemId = over.id as string;
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    // Check if we're dragging a project (by checking if it exists in groupedProjects)
+    const draggedProject = groupedProjects.find(p => p.projectCode === activeId);
+    
+    if (draggedProject) {
+      // We're dragging a project
+      // Check if we're dropping over another project (not a campaign inside a project)
+      let targetProjectCode = overId;
+      
+      // If dropping over a campaign, find its parent project
+      const overCampaign = campaigns.find(c => c.id === overId);
+      if (overCampaign) {
+        // Dropping over a campaign - move to that campaign's project position
+        targetProjectCode = overCampaign.projectCode || "Other Campaigns";
+      }
+      
+      const overProject = groupedProjects.find(p => p.projectCode === targetProjectCode);
+      
+      if (overProject && activeId !== targetProjectCode) {
+        const oldIndex = groupedProjects.findIndex(p => p.projectCode === activeId);
+        const newIndex = groupedProjects.findIndex(p => p.projectCode === targetProjectCode);
+        
+        // Reorder projects
+        const reorderedProjects = arrayMove(groupedProjects, oldIndex, newIndex);
+        
+        // Update order field for all projects
+        reorderedProjects.forEach((project, index) => {
+          if (project.isRealProject) {
+            try {
+              const projectData = JSON.parse(localStorage.getItem(`project_${project.projectCode}`) || '{}');
+              projectData.order = index;
+              projectData.updatedAt = new Date().toISOString();
+              localStorage.setItem(`project_${project.projectCode}`, JSON.stringify(projectData));
+            } catch (error) {
+              console.error('Error updating project order:', error);
+            }
+          }
+        });
+        
+        // Update state
+        setGroupedProjects(reorderedProjects);
+        
+        // Dispatch event to update sidebar
+        window.dispatchEvent(new CustomEvent('projectSaved'));
+      }
+      return;
+    }
+
+    // Otherwise, we're dragging a campaign
+    const draggedCampaignId = activeId;
+    const overItemId = overId;
 
     // Find the dragged campaign
     const draggedCampaign = campaigns.find(c => c.id === draggedCampaignId);
@@ -697,10 +908,20 @@ function HomeContent() {
 
   // Handle new project creation
   const handleNewProject = (projectData: { projectName: string; projectCode: string }) => {
+    // Count existing projects to set order
+    let projectCount = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('project_')) {
+        projectCount++;
+      }
+    }
+    
     const project = {
       ...projectData,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      order: projectCount, // Initialize with current count
     };
     
     // Save to localStorage
@@ -738,17 +959,23 @@ function HomeContent() {
     const projectMap = new Map<string, Campaign[]>();
     
     // First, load all saved projects from localStorage
-    const allProjects: Array<{ projectCode: string; projectName: string; createdAt: string }> = [];
+    const allProjects: Array<{ projectCode: string; projectName: string; createdAt: string; order?: number }> = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && key.startsWith('project_')) {
         try {
           const projectData = JSON.parse(localStorage.getItem(key) || '{}');
           if (projectData.projectCode && projectData.projectName) {
+            // Initialize order if not present
+            if (projectData.order === undefined) {
+              projectData.order = allProjects.length;
+              localStorage.setItem(key, JSON.stringify(projectData));
+            }
             allProjects.push({
               projectCode: projectData.projectCode,
               projectName: projectData.projectName,
-              createdAt: projectData.createdAt || new Date().toISOString()
+              createdAt: projectData.createdAt || new Date().toISOString(),
+              order: projectData.order
             });
             // Initialize with empty campaign array
             projectMap.set(projectData.projectCode, []);
@@ -783,6 +1010,7 @@ function HomeContent() {
 
     return Array.from(projectMap.entries()).map(([projectCode, projectCampaigns]) => {
       const { projectName, isRealProject } = getProjectInfo(projectCode);
+      const projectInfo = allProjects.find(p => p.projectCode === projectCode);
       const totalCalls = projectCampaigns.reduce((sum, c) => sum + (c.estimatedCalls || 0), 0);
       // Assume $1000 per call as average cost
       const avgCostPerCall = 1000;
@@ -813,19 +1041,25 @@ function HomeContent() {
         totalCalls,
         totalBudget,
         totalSpent,
-        isRealProject
+        isRealProject,
+        order: projectInfo?.order
       };
     }).sort((a, b) => {
       // Sort "Other Campaigns" to the end
       if (a.projectCode === "Other Campaigns") return 1;
       if (b.projectCode === "Other Campaigns") return -1;
       
-      // Use stable sort based on project creation date (not campaign dates)
-      // This ensures project order doesn't change when campaigns are moved
+      // Sort by order field if available, otherwise by creation date
+      const orderA = a.order !== undefined ? a.order : 999999;
+      const orderB = b.order !== undefined ? b.order : 999999;
+      
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+      
+      // Fallback to creation date if orders are equal
       const aProject = allProjects.find(p => p.projectCode === a.projectCode);
       const bProject = allProjects.find(p => p.projectCode === b.projectCode);
-      
-      // Sort by project creation date (most recent projects first)
       return new Date(bProject?.createdAt || 0).getTime() - new Date(aProject?.createdAt || 0).getTime();
     });
   };
@@ -866,7 +1100,7 @@ function HomeContent() {
 
       {/* Main Content */}
       <div className="flex-1 overflow-hidden max-w-full">
-        <div className="w-full h-full px-2 pb-2 ml-[48px] overflow-y-auto overflow-x-hidden">
+        <div className="w-[100vw-48px] h-full px-2 pb-2 ml-[48px] overflow-y-auto overflow-x-hidden">
 
           {/* New Campaign Button*/}
           <div className="my-3">
@@ -907,10 +1141,6 @@ function HomeContent() {
                 Create Campaign
               </button>
             </div>
-          ) : projectWidths.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-light-text-secondary dark:text-dark-text-secondary">Loading projects...</div>
-            </div>
           ) : (
             <DndContext
               sensors={sensors}
@@ -918,169 +1148,67 @@ function HomeContent() {
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
             >
-              <div className="flex h-[calc(100vh-135px)] w-[100vw] overflow-x-auto overflow-y-hidden gap-px" style={{ maxWidth: 'calc(100vw - 48px - 1rem)' }} ref={containerRef}>
-                {groupedProjects.map((project, projectIndex) => {
-                  const costPercentage = project.totalBudget > 0 
-                    ? Math.min(Math.round((project.totalSpent / project.totalBudget) * 100), 100)
-                    : 0;
-                  const campaignIds = project.campaigns.map(c => c.id);
-                  const columnWidth = projectWidths[projectIndex] || 0;
-                  const isCollapsed = columnWidth < 5;
-                  
-                  return (
-                    <React.Fragment key={project.projectCode}>
-                      {/* Project Card - Collapsed or Expanded based on width */}
-                      {isCollapsed ? (
-                        <button
-                          className="h-full shrink-0 flex items-center justify-center bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg shadow-card dark:shadow-card-dark hover:bg-light-background dark:hover:bg-dark-background transition-colors"
-                          style={{ width: `${columnWidth}vw` }}
-                          title={`Expand ${project.projectName} (${project.campaigns.length} campaigns)`}
-                          onClick={() => {
-                            const newWidths = [...projectWidths];
-                            newWidths[projectIndex] = 15;
-                            setProjectWidths(newWidths);
-                          }}
-                          onContextMenu={(e) => {
-                            if (project.isRealProject) {
-                              handleDeleteProject(e, project.projectCode, project.projectName);
-                            }
-                          }}
-                        >
-                          <span className="[writing-mode:vertical-rl] rotate-180 text-body-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary">
-                            {project.projectName}
-                          </span>
-                        </button>
-                      ) : (
-                        <DroppableProjectSection
-                          projectCode={project.projectCode}
-                          isExpanded={!isCollapsed}
-                        >
-                          <div 
-                            className="h-full flex flex-col bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg shadow-card dark:shadow-card-dark overflow-hidden"
-                            style={{ width: `${columnWidth}vw` }}
-                          >
-                          {/* Project Header */}
-                          <div 
-                            className="px-3 pt-3 pb-3  shrink-0 border-b border-light-border dark:border-dark-border"
-                            onContextMenu={(e) => {
-                              if (project.isRealProject) {
-                                handleDeleteProject(e, project.projectCode, project.projectName);
-                              }
-                            }}
-                          >
-                            <div className="flex items-center gap-2">
-                              <div
-                                onClick={() => {
-                                  if (project.isRealProject) {
-                                    router.push(`/project/${project.projectCode}`);
-                                  }
-                                }}
-                                className={`flex items-center gap-2 flex-1 min-w-0 ${project.isRealProject ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
-                              >
-                                <div className="min-w-0 flex-1">
-                                  <h3 className="text-title font-semibold text-light-text dark:text-dark-text truncate">
-                                    {project.projectName}
-                                  </h3>
-                                  {project.isRealProject && (
-                                    <p className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary">
-                                      {project.projectCode}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div className="mt-3 space-y-1">
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="text-light-text-secondary dark:text-dark-text-secondary">
-                                  {project.campaigns.length} campaign{project.campaigns.length !== 1 ? 's' : ''}
-                                </span>
-                                <span className="text-light-text-secondary dark:text-dark-text-secondary">
-                                  {project.totalCalls} calls
-                                </span>
-                              </div>
-                              
-                              {/* Cost Tracking Bar */}
-                              <div>
-                                <div className="flex items-center justify-between mb-1">
-                                  <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1">
-                                    <DollarSign className="w-3 h-3" />
-                                    Budget
-                                  </span>
-                                  <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary">
-                                    {isNaN(costPercentage) ? 0 : costPercentage}%
-                                  </span>
-                                </div>
-                                <div className="w-full bg-light-background-secondary dark:bg-dark-background-secondary rounded-full h-1.5">
-                                  <div 
-                                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                                      costPercentage > 90 ? 'bg-red-500' : 
-                                      costPercentage > 75 ? 'bg-orange-500' : 
-                                      'bg-green-500'
-                                    }`}
-                                    style={{ width: `${isNaN(costPercentage) ? 0 : Math.min(costPercentage, 100)}%` }}
-                                  />
-                                </div>
-                                <div className="flex items-center justify-between mt-0.5">
-                                  <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary">
-                                    {formatCurrency(project.totalSpent)}
-                                  </span>
-                                  <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary">
-                                    {formatCurrency(project.totalBudget)}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Campaigns List */}
-                          <div className="flex-1 overflow-y-auto">
-                            <SortableContext
-                              items={campaignIds}
-                              strategy={verticalListSortingStrategy}
-                            >
-                              <div className="p-3 space-y-2">
-                                {project.campaigns.map((campaign) => (
-                                  <DraggableCampaignCardRow
-                                    key={campaign.id}
-                                    campaign={campaign}
-                                    projectCode={project.projectCode}
-                                    onDelete={handleDeleteCampaign}
-                                    onNavigate={(id) => router.push(`/campaign/${id}/settings`)}
-                                  />
-                                ))}
-                              </div>
-                            </SortableContext>
-                          </div>
-                        </div>
-                        </DroppableProjectSection>
-                      )}
-                      
-                      {/* Resizable Divider */}
-                      {projectIndex < groupedProjects.length - 1 && (
-                        <div
-                          className="w-[6px] shrink-0 relative cursor-col-resize select-none group flex items-center justify-center"
-                          onMouseDown={onMouseDownDivider(projectIndex)}
-                        >
-                          <div className="h-[1in] w-[10px] rounded-md border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface shadow-sm flex items-center justify-center">
-                            <GripVertical className="h-3 w-3 text-light-text-tertiary dark:text-dark-text-tertiary group-hover:text-primary-500" />
-                          </div>
-                        </div>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </div>
+              <SortableContext
+                items={groupedProjects.map(p => p.projectCode)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="flex flex-col gap-2 overflow-y-auto" ref={containerRef}>
+                  {groupedProjects.map((project, projectIndex) => {
+                    const costPercentage = project.totalBudget > 0 
+                      ? Math.min(Math.round((project.totalSpent / project.totalBudget) * 100), 100)
+                      : 0;
+                    const campaignIds = project.campaigns.map(c => c.id);
+                    
+                    return (
+                      <ProjectCard
+                        key={project.projectCode}
+                        project={project}
+                        costPercentage={costPercentage}
+                        campaignIds={campaignIds}
+                        onDeleteProject={handleDeleteProject}
+                        onDeleteCampaign={handleDeleteCampaign}
+                        onNavigateToCampaign={(id) => router.push(`/campaign/${id}/settings`)}
+                        onNavigateToProject={(code) => router.push(`/project/${code}`)}
+                        formatCurrency={formatCurrency}
+                      />
+                    );
+                  })}
+                </div>
+              </SortableContext>
               <DragOverlay>
                 {activeDragId ? (
-                  <div className="bg-light-surface dark:bg-dark-surface border-2 border-primary-500 rounded-lg p-4 shadow-xl opacity-90">
-                    <div className="font-medium text-light-text dark:text-dark-text">
-                      {campaigns.find(c => c.id === activeDragId)?.campaignName || "Campaign"}
-                    </div>
-                    <div className="text-sm text-light-text-tertiary dark:text-dark-text-tertiary">
-                      Moving campaign...
-                    </div>
-                  </div>
+                  (() => {
+                    const draggedCampaign = campaigns.find(c => c.id === activeDragId);
+                    const draggedProject = groupedProjects.find(p => p.projectCode === activeDragId);
+                    
+                    if (draggedProject) {
+                      return (
+                        <div className="bg-light-surface dark:bg-dark-surface border-2 border-primary-500 rounded-lg p-4 shadow-xl opacity-90">
+                          <div className="font-medium text-light-text dark:text-dark-text">
+                            {draggedProject.projectName}
+                          </div>
+                          <div className="text-sm text-light-text-tertiary dark:text-dark-text-tertiary">
+                            Moving project...
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    if (draggedCampaign) {
+                      return (
+                        <div className="bg-light-surface dark:bg-dark-surface border-2 border-primary-500 rounded-lg p-4 shadow-xl opacity-90">
+                          <div className="font-medium text-light-text dark:text-dark-text">
+                            {draggedCampaign.campaignName}
+                          </div>
+                          <div className="text-sm text-light-text-tertiary dark:text-dark-text-tertiary">
+                            Moving campaign...
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    return null;
+                  })()
                 ) : null}
               </DragOverlay>
             </DndContext>
