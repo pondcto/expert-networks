@@ -193,8 +193,8 @@ function DraggableCampaignCardRow({
     if (!startDate || startDate === "Any") return "TBD";
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const startStr = start.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    const endStr = end.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    const startStr = start.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+    const endStr = end.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
     return `${startStr} - ${endStr}`;
   };
 
@@ -228,11 +228,26 @@ function DraggableCampaignCardRow({
     ? campaign.targetRegions 
     : ["North America", "Europe"];
 
+  // Map region names to abbreviations
+  const getRegionAbbreviation = (region: string): string => {
+    const regionMap: { [key: string]: string } = {
+      'North America': 'NA',
+      'Europe': 'EUR',
+      'Middle East & Africa': 'MEA',
+      'Middle East': 'MEA',
+      'Africa': 'MEA',
+      'Latin America': 'LATAM',
+      'Asia Pacific': 'APAC',
+      'Asia': 'APAC',
+    };
+    return regionMap[region] || 'OTHER';
+  };
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="group flex items-center gap-3 ml-6 bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-lg p-1 hover:border-primary-500 dark:hover:border-primary-500 transition-all"
+      className="group flex items-center gap-3 ml-[5vw] bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-lg p-1 hover:border-primary-500 dark:hover:border-primary-500 transition-all"
     >
       {/* Drag Handle */}
       <div 
@@ -274,18 +289,18 @@ function DraggableCampaignCardRow({
       {/* Target Regions */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1">
-          {targetRegions.slice(0, 2).map((region: string, index: number) => (
+          {targetRegions.slice(0, 3).map((region: string, index: number) => (
             <span 
               key={index}
-              className="inline-block px-2 py-0.5 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded text-xs text-light-text-secondary dark:text-dark-text-secondary truncate max-w-[80px]"
+              className="inline-flex items-center justify-center w-14 px-2 py-0.5 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary"
               title={region}
             >
-              {region}
+              {getRegionAbbreviation(region)}
             </span>
           ))}
-          {targetRegions.length > 2 && (
+          {targetRegions.length > 3 && (
             <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary flex-shrink-0">
-              +{targetRegions.length - 2}
+              +{targetRegions.length - 3}
             </span>
           )}
         </div>
@@ -293,9 +308,14 @@ function DraggableCampaignCardRow({
 
       {/* Budget / Cost Bar */}
       <div className="flex-1 min-w-0">
-        <div className="space-y-1">
+        <div className="space-y-1 px-3">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-light-text-tertiary dark:text-dark-text-tertiary">Budget</span>
+            <div className="flex items-center gap-1">
+              <span className="text-light-text-tertiary dark:text-dark-text-tertiary">Budget:</span>
+              <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary truncate">
+                {formatCurrency(totalSpent)} / {formatCurrency(totalBudget)}
+              </span>
+            </div>
             <span className={`font-medium ${
               costPercentage > 90 ? 'text-red-600 dark:text-red-400' : 
               costPercentage > 75 ? 'text-orange-600 dark:text-orange-400' : 
@@ -314,15 +334,13 @@ function DraggableCampaignCardRow({
               style={{ width: `${isNaN(costPercentage) ? 0 : costPercentage}%` }}
             />
           </div>
-          <div className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary truncate">
-            {formatCurrency(totalSpent)} / {formatCurrency(totalBudget)}
-          </div>
+          
         </div>
       </div>
 
       {/* Status */}
-      <div className="flex-shrink-0 w-16 text-center">
-        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${status.color}`}>
+      <div className="flex-shrink-0 w-24 text-center">
+        <span className={`inline-flex items-center justify-center w-20 px-2 py-0.5 rounded-full text-xs font-medium ${status.color}`}>
           {status.label}
         </span>
       </div>
@@ -337,7 +355,7 @@ function DraggableCampaignCardRow({
       {/* Team */}
       <div className="flex-shrink-0 w-20">
         {campaign.teamMembers && campaign.teamMembers.length > 0 ? (
-          <div className="flex -space-x-1 justify-end">
+          <div className="flex -space-x-1">
             {campaign.teamMembers.slice(0, 3).map((member) => (
               <img
                 key={member.id}
@@ -364,7 +382,7 @@ function DraggableCampaignCardRow({
           e.stopPropagation();
           onDelete(e, campaign.id);
         }}
-        className="flex-shrink-0 w-8 h-8 p-1.5 text-light-text-tertiary dark:text-dark-text-tertiary hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors opacity-0 group-hover:opacity-100"
+        className="flex-shrink-0 p-1.5 text-light-text-tertiary dark:text-dark-text-tertiary hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors opacity-0 group-hover:opacity-100"
         title="Delete campaign"
       >
         <Trash2 className="w-4 h-4" />
@@ -504,7 +522,7 @@ function ProjectCard({
                   e.stopPropagation();
                   onDeleteProject(e, project.projectCode, project.projectName);
                 }}
-                className="flex-shrink-0 p-1.5 text-light-text-tertiary dark:text-dark-text-tertiary hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors opacity-0 group-hover:opacity-100"
+                className="flex-shrink-0 p-1.5 mr-2 text-light-text-tertiary dark:text-dark-text-tertiary hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors opacity-0 group-hover:opacity-100"
                 title="Delete project"
               >
                 <Trash2 className="w-4 h-4" />
@@ -1331,24 +1349,93 @@ function HomeContent() {
 
           {/* New Campaign Button*/}
           <div className="my-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2">
               <button
-                onClick={() => router.push("/campaign/new")}
-                className="btn-primary flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                New Campaign
-              </button>
-
-              <button
-                className="btn-primary flex items-center gap-2"
+                className="btn-primary flex items-center gap-2 py-1 w-[180px]"
                 onClick={() => setIsNewProjectModalOpen(true)}
               >
                 <Plus className="w-4 h-4" />
                 New Project
               </button>
+
+              <button
+                onClick={() => router.push("/campaign/new")}
+                className="btn-primary flex items-center gap-2 py-1 w-[180px]"
+              >
+                <Plus className="w-4 h-4" />
+                New Campaign
+              </button>
             </div>
           </div>
+
+          {/* Column Header (Frozen) */}
+          {campaigns.length > 0 && (
+            <div className="sticky top-0 z-10 bg-light-background dark:bg-dark-background border-b-2 border-light-border dark:border-dark-border mb-2">
+              <div className="flex items-center gap-3 ml-[5vw] py-2 px-1">
+                {/* Drag Handle Column */}
+                <div className="flex-shrink-0 w-4"></div>
+
+                {/* Campaign Name */}
+                <div className="pl-2 flex-1 min-w-0">
+                  <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
+                    Campaign Name
+                  </span>
+                </div>
+
+                {/* Industry */}
+                <div className="pl-2 flex-1 min-w-0 text-center">
+                  <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
+                    Industry
+                  </span>
+                </div>
+
+                {/* Timeline */}
+                <div className="pl-2 flex-1 min-w-0">
+                  <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
+                    Timeline
+                  </span>
+                </div>
+
+                {/* Target Regions */}
+                <div className="pl-2 flex-1 min-w-0">
+                  <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
+                    Regions
+                  </span>
+                </div>
+
+                {/* Budget */}
+                <div className="pl-2 flex-1 min-w-0">
+                  <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
+                    Budget
+                  </span>
+                </div>
+
+                {/* Status */}
+                <div className="pl-2 flex-shrink-0 w-24">
+                  <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
+                    Status
+                  </span>
+                </div>
+
+                {/* Calls */}
+                <div className="pl-2 flex-shrink-0 w-20">
+                  <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
+                    Calls
+                  </span>
+                </div>
+
+                {/* Team */}
+                <div className="pl-2 flex-shrink-0 w-20">
+                  <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
+                    Team
+                  </span>
+                </div>
+
+                {/* Delete Column */}
+                <div className="flex-shrink-0 w-8"></div>
+              </div>
+            </div>
+          )}
 
           {/* Projects and Campaigns List */}
           {campaigns.length === 0 ? (
@@ -1414,21 +1501,15 @@ function HomeContent() {
                           <div className="font-medium text-light-text dark:text-dark-text">
                             {draggedProject.projectName}
                           </div>
-                          <div className="text-sm text-light-text-tertiary dark:text-dark-text-tertiary">
-                            Moving project...
-                          </div>
                         </div>
                       );
                     }
                     
                     if (draggedCampaign) {
                       return (
-                        <div className="bg-light-surface dark:bg-dark-surface border-2 border-primary-500 rounded-lg p-4 shadow-xl opacity-90">
+                        <div className="bg-light-surface dark:bg-dark-surface border-2 border-primary-500 rounded-lg p-2 shadow-xl opacity-90">
                           <div className="font-medium text-light-text dark:text-dark-text">
                             {draggedCampaign.campaignName}
-                          </div>
-                          <div className="text-sm text-light-text-tertiary dark:text-dark-text-tertiary">
-                            Moving campaign...
                           </div>
                         </div>
                       );
