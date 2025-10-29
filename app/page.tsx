@@ -7,7 +7,7 @@ import Logo from "./components/Logo";
 import { useTheme } from "./providers/theme-provider";
 import UserMenu from "./components/UserMenu";
 import NewProjectModal from "./components/NewProjectModal";
-import { Sun, Moon, Users, Calendar, FolderOpen, Plus, DollarSign, ChevronDown, ChevronRight, Trash2, GripVertical } from "lucide-react";
+import { Sun, Moon, Calendar, FolderOpen, Plus, ChevronDown, ChevronRight, Trash2, GripVertical } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   DndContext,
@@ -40,6 +40,7 @@ interface Campaign {
   createdAt: string;
   updatedAt: string;
   order?: number;
+  targetRegions?: string[];
 }
 
 interface Project {
@@ -231,7 +232,9 @@ function DraggableCampaignCardRow({
   };
 
   // Get target regions (from campaign data if available)
-  const targetRegions = (campaign as any).targetRegions || ["North America", "Europe"];
+  const targetRegions: string[] = campaign.targetRegions && campaign.targetRegions.length > 0 
+    ? campaign.targetRegions 
+    : ["North America", "Europe"];
 
   return (
     <div
