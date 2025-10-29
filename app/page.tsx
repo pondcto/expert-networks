@@ -401,7 +401,7 @@ function ProjectCard({
   onNavigateToProject: (projectCode: string) => void;
   formatCurrency: (amount: number) => string;
 }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   const {
     attributes,
@@ -571,6 +571,238 @@ function HomeContent() {
   // Memoize grouped projects to ensure consistency
   const [groupedProjects, setGroupedProjects] = useState<ProjectGroup[]>([]);
 
+  // Seed mock data into localStorage on first run (only if no campaigns exist)
+  const seedMockDataOnce = () => {
+    try {
+      const alreadySeeded = localStorage.getItem("mock_data_seeded_v1");
+      if (alreadySeeded) return;
+
+      // If there is at least one campaign, skip seeding
+      let hasCampaign = false;
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("campaign_")) {
+          hasCampaign = true;
+          break;
+        }
+      }
+      if (hasCampaign) {
+        localStorage.setItem("mock_data_seeded_v1", "true");
+        return;
+      }
+
+      // Seed projects
+      const projectsToSeed = [
+        { key: "project_PROJ-001", value: { projectName: "AI/ML Market Research", projectCode: "PROJ-001", createdAt: "2025-10-28T10:28:37.461Z", updatedAt: "2025-10-29T15:35:50.340Z", order: 2 } },
+        { key: "project_PROJ-002", value: { projectName: "Healthcare Digital Transformation", projectCode: "PROJ-002", createdAt: "2025-10-28T10:28:52.199Z", updatedAt: "2025-10-29T15:35:50.340Z", order: 4 } },
+        { key: "project_PROJ-003", value: { projectName: "Financial Services Innovation", projectCode: "PROJ-003", createdAt: "2025-10-28T10:29:07.941Z", updatedAt: "2025-10-29T15:35:50.340Z", order: 3 } },
+        { key: "project_PROJ-004", value: { projectName: "Retail & E-commerce Strategy", projectCode: "PROJ-004", createdAt: "2025-10-28T10:29:22.949Z", updatedAt: "2025-10-29T15:35:50.340Z", order: 0 } },
+        { key: "project_PROJ-005", value: { projectName: "Manufacturing Optimization", projectCode: "PROJ-005", createdAt: "2025-10-28T10:29:35.821Z", updatedAt: "2025-10-29T15:35:50.340Z", order: 1 } },
+      ];
+
+      projectsToSeed.forEach(p => localStorage.setItem(p.key, JSON.stringify(p.value)));
+
+      // Seed campaigns
+      const campaignsToSeed: Array<{ key: string; value: any }> = [
+        {
+          key: "campaign_ac609ac8fae0c8fd",
+          value: {
+            campaignName: "EHR System Integration",
+            projectCode: "PROJ-002",
+            industryVertical: "Healthcare",
+            customIndustry: "",
+            briefDescription: "EHR System Integration",
+            expandedDescription: "",
+            targetRegions: ["North America", "Europe"],
+            startDate: "2025-10-20",
+            targetCompletionDate: "2025-10-26",
+            estimatedCalls: 10,
+            teamMembers: [],
+            screeningQuestions: [],
+            selectedVendors: [],
+            proposedExperts: [],
+            id: "ac609ac8fae0c8fd",
+            createdAt: "2025-10-28T11:28:00.946Z",
+            updatedAt: "2025-10-29T15:46:00.028Z",
+            order: 0,
+          }
+        },
+        {
+          key: "campaign_e1a3616c55f154da",
+          value: {
+            campaignName: "AI Infrastructure Vendors",
+            projectCode: "PROJ-001",
+            industryVertical: "Technology",
+            customIndustry: "",
+            briefDescription: "AI Infrastructure Vendors",
+            expandedDescription: "",
+            targetRegions: ["Europe", "Asia Pacific"],
+            startDate: "2025-10-01",
+            targetCompletionDate: "2025-10-30",
+            estimatedCalls: 12,
+            teamMembers: [
+              { id: "2", name: "Michael David", designation: "Data Analyst", avatar: "/images/avatar/Michael David.png" },
+              { id: "8", name: "Richard Alan", designation: "Business Analyst", avatar: "/images/avatar/Richard Alan.png" },
+              { id: "7", name: "Matthew Scott", designation: "Quality Analyst", avatar: "/images/avatar/Matthew Scott.png" },
+              { id: "3", name: "David Charles", designation: "Content Specialist", avatar: "/images/avatar/David Charles.png" },
+              { id: "1", name: "John Robert", designation: "Research Lead", avatar: "/images/avatar/John Robert.png" },
+            ],
+            screeningQuestions: [],
+            selectedVendors: [],
+            proposedExperts: [],
+            id: "e1a3616c55f154da",
+            createdAt: "2025-10-28T10:31:25.503Z",
+            updatedAt: "2025-10-29T15:45:52.188Z",
+            order: 2,
+          }
+        },
+        {
+          key: "campaign_210076ed1c11955b",
+          value: {
+            campaignName: "AI Ethics & Compliance",
+            projectCode: "PROJ-001",
+            industryVertical: "Technology",
+            customIndustry: "",
+            briefDescription: "AI Ethics & Compliance",
+            expandedDescription: "",
+            targetRegions: ["Middle East & Africa"],
+            startDate: "2025-10-26",
+            targetCompletionDate: "2025-10-29",
+            estimatedCalls: 8,
+            teamMembers: [
+              { id: "10", name: "Thomas Edward", designation: "Market Analyst", avatar: "/images/avatar/Thomas Edward.png" },
+              { id: "9", name: "Robert James", designation: "UX Researcher", avatar: "/images/avatar/Robert James.png" },
+              { id: "7", name: "Matthew Scott", designation: "Quality Analyst", avatar: "/images/avatar/Matthew Scott.png" },
+              { id: "6", name: "James William", designation: "Technical Writer", avatar: "/images/avatar/James William.png" },
+              { id: "3", name: "David Charles", designation: "Content Specialist", avatar: "/images/avatar/David Charles.png" },
+              { id: "1", name: "John Robert", designation: "Research Lead", avatar: "/images/avatar/John Robert.png" },
+            ],
+            screeningQuestions: [],
+            selectedVendors: [],
+            proposedExperts: [],
+            id: "210076ed1c11955b",
+            createdAt: "2025-10-28T10:34:33.406Z",
+            updatedAt: "2025-10-29T15:45:52.187Z",
+            order: 1,
+          }
+        },
+        {
+          key: "campaign_4cbc6d42bd510f11",
+          value: {
+            campaignName: "Enterprise ML Platforms",
+            projectCode: "PROJ-001",
+            industryVertical: "Technology",
+            customIndustry: "",
+            briefDescription: "Enterprise ML Platforms",
+            expandedDescription: "",
+            targetRegions: ["North America", "Middle East & Africa"],
+            startDate: "2025-10-20",
+            targetCompletionDate: "2025-11-21",
+            estimatedCalls: 35,
+            teamMembers: [
+              { id: "8", name: "Richard Alan", designation: "Business Analyst", avatar: "/images/avatar/Richard Alan.png" },
+              { id: "10", name: "Thomas Edward", designation: "Market Analyst", avatar: "/images/avatar/Thomas Edward.png" },
+            ],
+            screeningQuestions: [],
+            selectedVendors: [],
+            proposedExperts: [],
+            id: "4cbc6d42bd510f11",
+            createdAt: "2025-10-28T10:33:41.248Z",
+            updatedAt: "2025-10-29T15:45:52.188Z",
+            order: 3,
+          }
+        },
+        {
+          key: "campaign_4dcf7cf2faa79779",
+          value: {
+            campaignName: "Telemedicine Platform Adoption",
+            projectCode: "PROJ-004",
+            industryVertical: "Technology",
+            customIndustry: "",
+            briefDescription: "Telemedicine Platform Adoption",
+            expandedDescription: "",
+            targetRegions: ["Middle East & Africa", "Latin America"],
+            startDate: "2025-10-24",
+            targetCompletionDate: "2025-10-31",
+            estimatedCalls: 12,
+            teamMembers: [
+              { id: "10", name: "Thomas Edward", designation: "Market Analyst", avatar: "/images/avatar/Thomas Edward.png" },
+              { id: "6", name: "James William", designation: "Technical Writer", avatar: "/images/avatar/James William.png" },
+              { id: "1", name: "John Robert", designation: "Research Lead", avatar: "/images/avatar/John Robert.png" },
+            ],
+            screeningQuestions: [],
+            selectedVendors: [],
+            proposedExperts: [],
+            id: "4dcf7cf2faa79779",
+            createdAt: "2025-10-28T10:35:20.261Z",
+            updatedAt: "2025-10-29T15:46:29.571Z",
+            order: 5,
+          }
+        },
+        {
+          key: "campaign_3b6b9b4677ffd51a",
+          value: {
+            campaignName: "IoT in Smart Factories",
+            projectCode: "PROJ-005",
+            industryVertical: "Manufacturing",
+            customIndustry: "",
+            briefDescription: "IoT in Smart Factories",
+            expandedDescription: "",
+            targetRegions: ["Latin America"],
+            startDate: "2025-10-29",
+            targetCompletionDate: "2025-11-20",
+            estimatedCalls: 18,
+            teamMembers: [
+              { id: "1", name: "John Robert", designation: "Research Lead", avatar: "/images/avatar/John Robert.png" },
+              { id: "8", name: "Richard Alan", designation: "Business Analyst", avatar: "/images/avatar/Richard Alan.png" },
+              { id: "7", name: "Matthew Scott", designation: "Quality Analyst", avatar: "/images/avatar/Matthew Scott.png" },
+              { id: "6", name: "James William", designation: "Technical Writer", avatar: "/images/avatar/James William.png" },
+            ],
+            screeningQuestions: [],
+            selectedVendors: [],
+            proposedExperts: [],
+            id: "3b6b9b4677ffd51a",
+            createdAt: "2025-10-28T11:31:25.522Z",
+            updatedAt: "2025-10-29T15:46:08.299Z",
+            order: 4,
+          }
+        },
+        {
+          key: "campaign_95c5d6ae2b3547c4",
+          value: {
+            campaignName: "Digital Banking Platforms",
+            projectCode: "PROJ-003",
+            industryVertical: "Finance",
+            customIndustry: "",
+            briefDescription: "Digital Banking Platforms",
+            expandedDescription: "",
+            targetRegions: ["Asia Pacific", "Europe"],
+            startDate: "2025-10-29",
+            targetCompletionDate: "2025-11-12",
+            estimatedCalls: 15,
+            teamMembers: [
+              { id: "6", name: "James William", designation: "Technical Writer", avatar: "/images/avatar/James William.png" },
+              { id: "5", name: "Daniel Paul", designation: "Project Manager", avatar: "/images/avatar/Daniel Paul.png" },
+            ],
+            screeningQuestions: [],
+            selectedVendors: [],
+            proposedExperts: [],
+            id: "95c5d6ae2b3547c4",
+            createdAt: "2025-10-28T11:32:30.986Z",
+            updatedAt: "2025-10-29T15:46:15.919Z",
+            order: 6,
+          }
+        },
+      ];
+
+      campaignsToSeed.forEach(c => localStorage.setItem(c.key, JSON.stringify(c.value)));
+
+      localStorage.setItem("mock_data_seeded_v1", "true");
+    } catch (e) {
+      console.error("Error seeding mock data", e);
+    }
+  };
+
   // Set up drag sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -583,6 +815,8 @@ function HomeContent() {
   // Load campaigns from localStorage
   useEffect(() => {
     const loadCampaigns = () => {
+      // Seed once before loading
+      seedMockDataOnce();
       const allCampaigns: Campaign[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
