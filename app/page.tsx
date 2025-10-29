@@ -306,6 +306,9 @@ function DraggableCampaignCardRow({
         </div>
       </div>
 
+      {/* Divider */}
+      <div className="flex-shrink-0 w-px h-8 bg-light-border dark:bg-dark-border mx-4"></div>
+
       {/* Budget / Cost Bar */}
       <div className="flex-1 min-w-0">
         <div className="space-y-1 px-3">
@@ -324,7 +327,7 @@ function DraggableCampaignCardRow({
               {isNaN(costPercentage) ? 0 : costPercentage}%
             </span>
           </div>
-          <div className="w-full bg-light-background-secondary dark:bg-dark-background-secondary rounded-full h-1.5">
+          <div className="w-full bg-light-background-secondary dark:bg-dark-background-tertiary rounded-full h-1.5">
             <div 
               className={`h-1.5 rounded-full transition-all ${
                 costPercentage > 90 ? 'bg-red-500' : 
@@ -1402,6 +1405,9 @@ function HomeContent() {
                     Regions
                   </span>
                 </div>
+
+                {/* Divider */}
+                <div className="flex-shrink-0 w-px h-6 bg-light-border dark:bg-dark-border mx-4"></div>
 
                 {/* Budget */}
                 <div className="pl-2 flex-1 min-w-0">

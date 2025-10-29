@@ -411,54 +411,54 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                   {/* Other Campaigns (without project) */}
                                   {campaignsWithoutProject.length > 0 && (
                                     <div>
-                                      <button
+                            <button
                                         onClick={() => toggleProject('other-campaigns')}
-                                        className="flex items-center gap-2 w-full px-2 py-1.5 text-sm text-light-text-tertiary dark:text-dark-text-tertiary hover:text-light-text dark:hover:text-dark-text hover:bg-light-surface-hover dark:hover:bg-dark-surface-hover rounded transition-colors"
-                                      >
+                              className="flex items-center gap-2 w-full px-2 py-1.5 text-sm text-light-text-tertiary dark:text-dark-text-tertiary hover:text-light-text dark:hover:text-dark-text hover:bg-light-surface-hover dark:hover:bg-dark-surface-hover rounded transition-colors"
+                            >
                                         {expandedProjects.includes('other-campaigns') ? (
-                                          <ChevronDown className="h-3 w-3" />
-                                        ) : (
-                                          <ChevronRight className="h-3 w-3" />
-                                        )}
+                                <ChevronDown className="h-3 w-3" />
+                              ) : (
+                                <ChevronRight className="h-3 w-3" />
+                              )}
                                         <span>Other Campaigns</span>
                                         <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary ml-auto">
                                           {campaignsWithoutProject.length}
                                         </span>
-                                      </button>
-                                      
+                            </button>
+                            
                                       {expandedProjects.includes('other-campaigns') && (
-                                        <div className="ml-6 space-y-1">
+                              <div className="ml-6 space-y-1">
                                           {campaignsWithoutProject.map((campaign: Campaign) => {
                                             const campaignHref = `/campaign/${campaign.id}/settings`;
                                             const isCampaignActive = pathname?.includes(`/campaign/${campaign.id}`);
-                                            return (
-                                              <Link
+                                    return (
+                                      <Link
                                                 key={campaign.id}
-                                                href={campaignHref}
-                                                className={`block px-2 py-1.5 text-sm rounded transition-colors ${
-                                                  isCampaignActive 
-                                                    ? "bg-light-surface-active text-light-text dark:bg-dark-surface-active dark:text-dark-text" 
-                                                    : "text-light-text-tertiary dark:text-dark-text-tertiary hover:text-light-text dark:hover:text-dark-text hover:bg-light-surface-hover dark:hover:bg-dark-surface-hover"
-                                                }`}
-                                                onClick={() => setActiveNav({ 
-                                                  level1: item.title, 
+                                        href={campaignHref}
+                                        className={`block px-2 py-1.5 text-sm rounded transition-colors ${
+                                          isCampaignActive 
+                                            ? "bg-light-surface-active text-light-text dark:bg-dark-surface-active dark:text-dark-text" 
+                                            : "text-light-text-tertiary dark:text-dark-text-tertiary hover:text-light-text dark:hover:text-dark-text hover:bg-light-surface-hover dark:hover:bg-dark-surface-hover"
+                                        }`}
+                                        onClick={() => setActiveNav({ 
+                                          level1: item.title, 
                                                   level2: 'Other Campaigns', 
                                                   level3: campaign.campaignName || 'Unnamed Campaign'
-                                                })}
-                                              >
-                                                <div className="flex flex-col">
+                                        })}
+                                      >
+                                        <div className="flex flex-col">
                                                   <span className="font-medium">{campaign.campaignName || 'Unnamed Campaign'}</span>
-                                                  <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary">
+                                          <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary">
                                                     {campaign.industryVertical || 'No industry'}
-                                                  </span>
-                                                </div>
-                                              </Link>
-                                            );
-                                          })}
+                                          </span>
                                         </div>
-                                      )}
-                                    </div>
-                                  )}
+                                      </Link>
+                                    );
+                                          })}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                                   
                                   {/* No projects or campaigns */}
                                   {projects.length === 0 && campaignsWithoutProject.length === 0 && (
