@@ -43,14 +43,6 @@ interface Campaign {
   targetRegions?: string[];
 }
 
-interface Project {
-  projectCode: string;
-  projectName: string;
-  createdAt: string;
-  updatedAt: string;
-  order?: number;
-}
-
 interface ProjectGroup {
   projectCode: string;
   projectName: string;
@@ -389,7 +381,6 @@ function ProjectCard({
   onDeleteProject,
   onDeleteCampaign,
   onNavigateToCampaign,
-  onNavigateToProject,
   formatCurrency,
 }: {
   project: ProjectGroup;
@@ -398,7 +389,6 @@ function ProjectCard({
   onDeleteProject: (e: React.MouseEvent, projectCode: string, projectName: string) => void;
   onDeleteCampaign: (e: React.MouseEvent, campaignId: string) => void;
   onNavigateToCampaign: (campaignId: string) => void;
-  onNavigateToProject: (projectCode: string) => void;
   formatCurrency: (amount: number) => string;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -603,7 +593,7 @@ function HomeContent() {
       projectsToSeed.forEach(p => localStorage.setItem(p.key, JSON.stringify(p.value)));
 
       // Seed campaigns
-      const campaignsToSeed: Array<{ key: string; value: any }> = [
+      const campaignsToSeed: Array<{ key: string; value: Record<string, unknown> }> = [
         {
           key: "campaign_ac609ac8fae0c8fd",
           value: {
@@ -1390,7 +1380,7 @@ function HomeContent() {
                 strategy={verticalListSortingStrategy}
               >
                 <div className="flex flex-col gap-2 overflow-y-auto" ref={containerRef}>
-                  {groupedProjects.map((project, projectIndex) => {
+                {groupedProjects.map((project) => {
                     const costPercentage = project.totalBudget > 0 
                       ? Math.min(Math.round((project.totalSpent / project.totalBudget) * 100), 100)
                       : 0;
@@ -1405,7 +1395,7 @@ function HomeContent() {
                         onDeleteProject={handleDeleteProject}
                         onDeleteCampaign={handleDeleteCampaign}
                         onNavigateToCampaign={(id) => router.push(`/campaign/${id}/settings`)}
-                        onNavigateToProject={(code) => router.push(`/project/${code}`)}
+                    
                         formatCurrency={formatCurrency}
                       />
                     );
