@@ -94,15 +94,26 @@ export default function TeamMembersPanel({
   const [filterText, setFilterText] = useState("");
   const [currentMembers, setCurrentMembers] = useState<TeamMember[]>(members);
   const [invitedMembers, setInvitedMembers] = useState<Set<string>>(new Set());
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [currentCampaignId, setCurrentCampaignId] = useState<string | null>(null);
 
-  // Load campaign data when it becomes available (only once on mount)
+  // Load campaign data when campaign changes
   useEffect(() => {
-    if (campaignData && campaignData.teamMembers && !isInitialized) {
-      setCurrentMembers(campaignData.teamMembers as TeamMember[]);
-      setIsInitialized(true);
+    if (isNewCampaign) {
+      // Reset to empty for new campaigns
+      if (currentCampaignId !== null) {
+        setCurrentCampaignId(null);
+        setCurrentMembers([]);
+        setInvitedMembers(new Set());
+      }
+    } else if (campaignData?.id) {
+      // If campaign ID changed, reset and load new campaign's team members
+      if (currentCampaignId !== campaignData.id) {
+        setCurrentCampaignId(campaignData.id);
+        setCurrentMembers((campaignData.teamMembers as TeamMember[]) || []);
+        setInvitedMembers(new Set());
+      }
     }
-  }, [campaignData, isInitialized]);
+  }, [campaignData, currentCampaignId, isNewCampaign]);
 
   const filteredMembers = availableMembers.filter(member =>
     (member.name.toLowerCase().includes(filterText.toLowerCase()) ||
