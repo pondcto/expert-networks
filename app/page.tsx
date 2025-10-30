@@ -239,6 +239,7 @@ function DraggableCampaignCardRow({
       'Latin America': 'LATAM',
       'Asia Pacific': 'APAC',
       'Asia': 'APAC',
+      'Other': 'OTHER',
     };
     return regionMap[region] || 'OTHER';
   };
@@ -337,7 +338,6 @@ function DraggableCampaignCardRow({
               style={{ width: `${isNaN(costPercentage) ? 0 : costPercentage}%` }}
             />
           </div>
-          
         </div>
       </div>
 

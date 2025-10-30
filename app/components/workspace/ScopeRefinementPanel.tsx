@@ -25,7 +25,8 @@ const targetRegions = [
   "Europe",
   "Asia Pacific",
   "Latin America",
-  "Middle East & Africa"
+  "Middle East & Africa",
+  "Other"
 ];
 
 // Helper to format date for display
@@ -49,7 +50,14 @@ export default function ScopeRefinementPanel({
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const datePickerRef = useRef<HTMLDivElement>(null);
+  const dateButtonRef = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [datePickerPosition, setDatePickerPosition] = useState({ top: 0, left: 0 });
+  const [showHints, setShowHints] = useState({
+    targetRegions: false,
+    dates: false,
+    estimatedCalls: false
+  });
   
   const [dateRange, setDateRange] = useState<Array<{ startDate: Date; endDate: Date; key: string }>>([
     {
@@ -84,17 +92,32 @@ export default function ScopeRefinementPanel({
   // Close date picker when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
+      if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node) &&
+          dateButtonRef.current && !dateButtonRef.current.contains(event.target as Node)) {
         setShowDatePicker(false);
+      }
+    };
+    
+    const updatePosition = () => {
+      if (dateButtonRef.current && showDatePicker) {
+        const rect = dateButtonRef.current.getBoundingClientRect();
+        setDatePickerPosition({
+          top: rect.bottom + 8,
+          left: rect.left + rect.width / 2
+        });
       }
     };
     
     if (showDatePicker) {
       document.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
     }
     
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
     };
   }, [showDatePicker]);
 
@@ -157,6 +180,36 @@ export default function ScopeRefinementPanel({
                        formData.estimatedCalls > 0;
     onFormChange?.(isCompleted);
   }, [formData, onFormChange]);
+
+  // Listen for event to show required field hints
+  React.useEffect(() => {
+    const handleShowHints = () => {
+      const hasValidDates = !!(formData.startDate && formData.startDate !== "Any" && 
+                              formData.targetCompletionDate && formData.targetCompletionDate !== "Any");
+      const hasRegions = formData.targetRegions.length > 0;
+      const hasValidCalls = formData.estimatedCalls > 0;
+      
+      setShowHints({
+        targetRegions: !hasRegions,
+        dates: !hasValidDates,
+        estimatedCalls: !hasValidCalls
+      });
+
+      // Auto-hide hints after 3 seconds
+      setTimeout(() => {
+        setShowHints({
+          targetRegions: false,
+          dates: false,
+          estimatedCalls: false
+        });
+      }, 3000);
+    };
+
+    window.addEventListener('showRequiredFieldHints', handleShowHints);
+    return () => {
+      window.removeEventListener('showRequiredFieldHints', handleShowHints);
+    };
+  }, [formData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -249,18 +302,27 @@ export default function ScopeRefinementPanel({
             <label className="block  font-medium text-light-text dark:text-dark-text mb-1">
               Target regions<span className="text-red-500">*</span>
             </label>
-            <div className="grid grid-cols-2 gap-1">
-              {targetRegions.map((region) => (
-                <label key={region} className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.targetRegions.includes(region)}
-                    onChange={(e) => handleRegionChange(region, e.target.checked)}
-                    className="w-3 h-3 text-primary-500  dark:bg-dark-background-secondary border border-light-border dark:border-dark-border rounded focus:ring-1 focus:ring-primary-500"
-                  />
-                  <span className=" text-light-text dark:text-dark-text">{region}</span>
-                </label>
-              ))}
+            <div className="relative">
+              <div className={`grid grid-cols-2 gap-1 p-2 border rounded ${
+                showHints.targetRegions ? 'border-red-500 bg-red-50/50 dark:bg-red-900/10' : 'border-transparent'
+              }`}>
+                {targetRegions.map((region) => (
+                  <label key={region} className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.targetRegions.includes(region)}
+                      onChange={(e) => handleRegionChange(region, e.target.checked)}
+                      className="w-3 h-3 text-primary-500  dark:bg-dark-background-secondary border border-light-border dark:border-dark-border rounded focus:ring-1 focus:ring-primary-500"
+                    />
+                    <span className=" text-light-text dark:text-dark-text">{region}</span>
+                  </label>
+                ))}
+              </div>
+              {showHints.targetRegions && (
+                <div className="absolute top-full left-0 mt-1 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded border border-red-200 dark:border-red-800 z-10">
+                  Please select at least one region
+                </div>
+              )}
             </div>
           </div>
 
@@ -272,8 +334,20 @@ export default function ScopeRefinementPanel({
             
             {/* Date Display Button */}
             <div 
-              onClick={() => setShowDatePicker(!showDatePicker)}
-              className="w-full px-3 py-2.5 dark:bg-dark-background-secondary border border-light-border dark:border-dark-border rounded text-light-text dark:text-dark-text focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent cursor-pointer hover:border-primary-500 transition-colors flex items-center justify-between group"
+              ref={dateButtonRef}
+              onClick={() => {
+                if (dateButtonRef.current) {
+                  const rect = dateButtonRef.current.getBoundingClientRect();
+                  setDatePickerPosition({
+                    top: rect.bottom + 8,
+                    left: rect.left + rect.width / 2
+                  });
+                }
+                setShowDatePicker(!showDatePicker);
+              }}
+              className={`w-1/2 px-3 py-2 dark:bg-dark-background-secondary border rounded text-light-text dark:text-dark-text focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent cursor-pointer hover:border-primary-500 transition-colors flex items-center justify-between group ${
+                showHints.dates ? 'border-red-500' : 'border-light-border dark:border-dark-border'
+              }`}
             >
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-light-text-tertiary dark:text-dark-text-tertiary group-hover:text-primary-500 transition-colors" />
@@ -317,14 +391,22 @@ export default function ScopeRefinementPanel({
                 </span>
               </p>
             )}
+
+            {/* Hint Message */}
+            {showHints.dates && (
+              <div className="mt-1 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded border border-red-200 dark:border-red-800">
+                Please select campaign start and end dates
+              </div>
+            )}
             
             {/* Date Range Picker Popover */}
             {showDatePicker && (
               <div 
                 ref={datePickerRef}
-                className="absolute z-50 mt-2 bg-white dark:bg-dark-surface shadow-xl rounded-lg border border-light-border dark:border-dark-border overflow-hidden"
+                className="fixed z-[9999] bg-white dark:bg-dark-surface shadow-xl rounded-lg border border-light-border dark:border-dark-border overflow-hidden"
                 style={{
-                  left: '50%',
+                  top: `${datePickerPosition.top}px`,
+                  left: `${datePickerPosition.left}px`,
                   transform: 'translateX(-50%) scale(0.85)',
                   transformOrigin: 'top center'
                 }}
@@ -539,14 +621,23 @@ export default function ScopeRefinementPanel({
             <label className="block  font-medium text-light-text dark:text-dark-text mb-1">
               Estimated number of calls<span className="text-red-500">*</span>
             </label>
-            <input
-              type="number"
-              value={Number.isNaN(formData.estimatedCalls) ? '' : formData.estimatedCalls}
-              onChange={(e) => handleInputChange("estimatedCalls", parseInt(e.target.value) || 0)}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              className="w-full px-2 py-1   dark:bg-dark-background-secondary border border-light-border dark:border-dark-border rounded text-light-text dark:text-dark-text placeholder-light-text-tertiary dark:placeholder-dark-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent"
-            />
+            <div className="relative">
+              <input
+                type="number"
+                value={Number.isNaN(formData.estimatedCalls) ? '' : formData.estimatedCalls}
+                onChange={(e) => handleInputChange("estimatedCalls", parseInt(e.target.value) || 0)}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                className={`w-full px-2 py-1 dark:bg-dark-background-secondary border rounded text-light-text dark:text-dark-text placeholder-light-text-tertiary dark:placeholder-dark-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent ${
+                  showHints.estimatedCalls ? 'border-red-500' : 'border-light-border dark:border-dark-border'
+                }`}
+              />
+              {showHints.estimatedCalls && (
+                <div className="absolute top-full left-0 mt-1 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded border border-red-200 dark:border-red-800 z-10">
+                  Please enter estimated number of calls
+                </div>
+              )}
+            </div>
             <p className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary mt-1">
               This helps us estimate your campaign budget
             </p>

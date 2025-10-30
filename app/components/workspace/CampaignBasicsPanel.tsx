@@ -48,6 +48,11 @@ export default function CampaignBasicsPanel({
     expandedDescription: ""
   });
   const [isEditing, setIsEditing] = useState(false);
+  const [showHints, setShowHints] = useState({
+    campaignName: false,
+    industryVertical: false,
+    briefDescription: false
+  });
 
   // Load campaign data when it becomes available (but not while user is editing)
   useEffect(() => {
@@ -101,6 +106,34 @@ export default function CampaignBasicsPanel({
     onFormChange?.(isCompleted);
   }, [formData, onFormChange]);
 
+  // Listen for event to show required field hints
+  React.useEffect(() => {
+    const handleShowHints = () => {
+      const hasValidIndustry = formData.industryVertical !== "Any" && 
+                               (formData.industryVertical !== "Other" || formData.customIndustry?.trim() !== "");
+      
+      setShowHints({
+        campaignName: formData.campaignName.trim() === "",
+        industryVertical: !hasValidIndustry,
+        briefDescription: formData.briefDescription.trim() === ""
+      });
+
+      // Auto-hide hints after 3 seconds
+      setTimeout(() => {
+        setShowHints({
+          campaignName: false,
+          industryVertical: false,
+          briefDescription: false
+        });
+      }, 3000);
+    };
+
+    window.addEventListener('showRequiredFieldHints', handleShowHints);
+    return () => {
+      window.removeEventListener('showRequiredFieldHints', handleShowHints);
+    };
+  }, [formData]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit?.(formData);
@@ -122,15 +155,24 @@ export default function CampaignBasicsPanel({
               <label className="block font-medium text-light-text dark:text-dark-text mb-1">
                 Campaign name<span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                value={formData.campaignName}
-                onChange={(e) => handleInputChange("campaignName", e.target.value)}
-                onFocus={handleFocus}
-                onBlur={handleBlur}
-                placeholder="Campaign name, example: Company - Market Analysis"
-                className="w-full px-2 py-1   dark:bg-dark-background-secondary border border-light-border dark:border-dark-border rounded text-light-text dark:text-dark-text placeholder-light-text-tertiary dark:placeholder-dark-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={formData.campaignName}
+                  onChange={(e) => handleInputChange("campaignName", e.target.value)}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
+                  placeholder="Campaign name, example: Company - Market Analysis"
+                  className={`w-full px-2 py-1 dark:bg-dark-background-secondary border rounded text-light-text dark:text-dark-text placeholder-light-text-tertiary dark:placeholder-dark-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent ${
+                    showHints.campaignName ? 'border-red-500' : 'border-light-border dark:border-dark-border'
+                  }`}
+                />
+                {showHints.campaignName && (
+                  <div className="absolute top-full left-0 mt-1 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded border border-red-200 dark:border-red-800">
+                    Campaign name is required
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Project code */}
@@ -156,19 +198,28 @@ export default function CampaignBasicsPanel({
               <label className="block font-medium text-light-text dark:text-dark-text mb-1">
                 Industry vertical<span className="text-red-500">*</span>
               </label>
-              <select
-                value={formData.industryVertical}
-                onChange={(e) => handleInputChange("industryVertical", e.target.value)}
-                onFocus={handleFocus}
-                onBlur={handleBlur}
-                className="w-full px-2 py-1   dark:bg-dark-background-secondary border border-light-border dark:border-dark-border rounded text-light-text dark:text-dark-text focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent appearance-none cursor-pointer"
-              >
-                {industryOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={formData.industryVertical}
+                  onChange={(e) => handleInputChange("industryVertical", e.target.value)}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
+                  className={`w-full px-2 py-1 dark:bg-dark-background-secondary border rounded text-light-text dark:text-dark-text focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent appearance-none cursor-pointer ${
+                    showHints.industryVertical ? 'border-red-500' : 'border-light-border dark:border-dark-border'
+                  }`}
+                >
+                  {industryOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+                {showHints.industryVertical && (
+                  <div className="absolute top-full left-0 mt-1 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded border border-red-200 dark:border-red-800 z-10">
+                    Please select an industry
+                  </div>
+                )}
+              </div>
             </div>
             
             {/* Custom Industry Input - shown when "Other" is selected */}
@@ -196,15 +247,24 @@ export default function CampaignBasicsPanel({
             <label className="block  font-medium text-light-text dark:text-dark-text mb-1">
               Brief description<span className="text-red-500">*</span>
             </label>
-            <input
-              type="text"
-              value={formData.briefDescription}
-              onChange={(e) => handleInputChange("briefDescription", e.target.value)}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              placeholder="One-line description of your campaign"
-              className="w-full px-2 py-1   dark:bg-dark-background-secondary border border-light-border dark:border-dark-border rounded text-light-text dark:text-dark-text placeholder-light-text-tertiary dark:placeholder-dark-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={formData.briefDescription}
+                onChange={(e) => handleInputChange("briefDescription", e.target.value)}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                placeholder="One-line description of your campaign"
+                className={`w-full px-2 py-1 dark:bg-dark-background-secondary border rounded text-light-text dark:text-dark-text placeholder-light-text-tertiary dark:placeholder-dark-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent ${
+                  showHints.briefDescription ? 'border-red-500' : 'border-light-border dark:border-dark-border'
+                }`}
+              />
+              {showHints.briefDescription && (
+                <div className="absolute top-full left-0 text-xs text-red-600 dark:text-red-400">
+                  Brief description is required
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Expanded description */}
