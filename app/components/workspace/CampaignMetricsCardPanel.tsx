@@ -7,9 +7,9 @@ export default function CampaignMetricsCardPanel() {
   
   return (
     <div className="px-2 py-2 pb-0 ml-[48px]">
-        <div className="grid grid-cols-8 gap-4">
+        <div className="grid grid-cols-7 gap-4">
             {/* Campaign Name */}
-            <div className="bg-white dark:bg-gray-800 col-span-2 flex items-center justify-center rounded-lg p-2 border border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 col-span-1 flex items-center justify-center rounded-lg p-2 border border-gray-200 dark:border-gray-700">
                 <div className="text-lg font-semibold text-gray-800 dark:text-gray-200 text-center">
                     {campaignData?.campaignName || "Campaign Name"}
                 </div>

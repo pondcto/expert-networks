@@ -134,14 +134,13 @@ export default function ExpertDetailsPanel({ selectedExpert, expert }: ExpertDet
         <h3 className="text-title font-semibold text-light-text dark:text-dark-text">
           Expert Details
         </h3>
-        {/* {selectedExpert && (
+        {selectedExpert && (
           <button 
-            onClick={() => setShowReviewModal(true)}
-            className="px-4 py-5 text-white text-sm font-medium rounded-md transition-colors h-6 flex items-center justify-center bg-primary-500 hover:bg-primary-600"
+            className="px-4 py-4 text-white text-sm font-medium rounded-md transition-colors h-6 flex items-center justify-center bg-primary-500 hover:bg-primary-600"
           >
-            {selectedExpert.status === "Awaiting Review" ? "Review" : "View Review"}
+            Request Interview
           </button>
-        )} */}
+        )}
       </div>
 
       <div className="flex-1 overflow-auto">
