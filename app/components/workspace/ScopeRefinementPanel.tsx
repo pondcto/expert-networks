@@ -319,7 +319,7 @@ export default function ScopeRefinementPanel({
                 ))}
               </div>
               {showHints.targetRegions && (
-                <div className="absolute top-full left-0 mt-1 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded border border-red-200 dark:border-red-800 z-10">
+                <div className="absolute top-full left-0 text-xs text-red-600 dark:text-red-400">
                   Please select at least one region
                 </div>
               )}
@@ -394,7 +394,7 @@ export default function ScopeRefinementPanel({
 
             {/* Hint Message */}
             {showHints.dates && (
-              <div className="mt-1 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded border border-red-200 dark:border-red-800">
+              <div className="mt-1 text-xs text-red-600 dark:text-red-400">
                 Please select campaign start and end dates
               </div>
             )}
@@ -633,7 +633,7 @@ export default function ScopeRefinementPanel({
                 }`}
               />
               {showHints.estimatedCalls && (
-                <div className="absolute top-full left-0 mt-1 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded border border-red-200 dark:border-red-800 z-10">
+                <div className="absolute top-full left-0 text-xs text-red-600 dark:text-red-400">
                   Please enter estimated number of calls
                 </div>
               )}

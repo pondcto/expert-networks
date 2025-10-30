@@ -168,7 +168,7 @@ export default function CampaignBasicsPanel({
                   }`}
                 />
                 {showHints.campaignName && (
-                  <div className="absolute top-full left-0 mt-1 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded border border-red-200 dark:border-red-800">
+                  <div className="absolute top-full left-0 text-xs text-red-600 dark:text-red-400">
                     Campaign name is required
                   </div>
                 )}
@@ -215,7 +215,7 @@ export default function CampaignBasicsPanel({
                   ))}
                 </select>
                 {showHints.industryVertical && (
-                  <div className="absolute top-full left-0 mt-1 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded border border-red-200 dark:border-red-800 z-10">
+                  <div className="absolute top-full left-0 text-xs text-red-600 dark:text-red-400">
                     Please select an industry
                   </div>
                 )}
