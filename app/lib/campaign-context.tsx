@@ -13,7 +13,9 @@ export interface CampaignData {
   targetRegions: string[];
   startDate: string;
   targetCompletionDate: string;
-  estimatedCalls: number;
+  estimatedCalls?: number; // Keep for backward compatibility
+  minCalls?: number;
+  maxCalls?: number;
   teamMembers: unknown[];
   screeningQuestions: unknown[];
   selectedVendors: string[];

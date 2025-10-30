@@ -86,10 +86,34 @@ export default function CampaignBasicsPanel({
   // Auto-save on blur for existing campaigns
   const handleBlur = async () => {
     setIsEditing(false);
+    
     if (!isNewCampaign && campaignData?.id) {
+      // Check if any required field is blank
+      const hasValidIndustry = formData.industryVertical !== "Any" && 
+                               (formData.industryVertical !== "Other" || formData.customIndustry?.trim() !== "");
+      const isAnyRequiredFieldBlank = 
+        formData.campaignName.trim() === "" || 
+        !hasValidIndustry || 
+        formData.briefDescription.trim() === "";
+      
+      // If any required field is blank, restore from campaignData instead of saving
+      if (isAnyRequiredFieldBlank) {
+        console.log('Required field(s) are blank. Restoring previous values...');
+        setFormData({
+          campaignName: campaignData.campaignName || "",
+          projectCode: campaignData.projectCode || "",
+          industryVertical: campaignData.industryVertical || "Any",
+          customIndustry: campaignData.customIndustry || "",
+          briefDescription: campaignData.briefDescription || "",
+          expandedDescription: campaignData.expandedDescription || ""
+        });
+        return;
+      }
+      
+      // If all required fields are valid, save
       try {
         console.log('Auto-saving campaign on blur (Campaign Basics)...');
-        await saveCampaign();
+        await saveCampaign(formData);
       } catch (error) {
         console.error('Failed to auto-save campaign:', error);
       }

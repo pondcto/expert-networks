@@ -35,7 +35,9 @@ interface Campaign {
   industryVertical: string;
   startDate: string;
   targetCompletionDate: string;
-  estimatedCalls: number;
+  estimatedCalls?: number; // Keep for backward compatibility
+  minCalls?: number;
+  maxCalls?: number;
   teamMembers: { id: string; name: string; designation: string; avatar: string }[];
   createdAt: string;
   updatedAt: string;
@@ -198,9 +200,18 @@ function DraggableCampaignCardRow({
     return `${startStr} - ${endStr}`;
   };
 
+  // Helper to get estimated calls (handles both old and new format)
+  const getEstimatedCalls = (c: Campaign): number => {
+    if (c.minCalls !== undefined && c.maxCalls !== undefined) {
+      return Math.round((c.minCalls + c.maxCalls) / 2);
+    }
+    return c.estimatedCalls || 0;
+  };
+
   // Calculate budget info
   const avgCostPerCall = 1000;
-  const totalBudget = (campaign.estimatedCalls || 0) * avgCostPerCall;
+  const estimatedCalls = getEstimatedCalls(campaign);
+  const totalBudget = estimatedCalls * avgCostPerCall;
   const status = getCampaignStatus(campaign);
   let totalSpent = 0;
   
@@ -351,7 +362,9 @@ function DraggableCampaignCardRow({
       {/* Calls */}
       <div className="flex-shrink-0 w-20 text-center">
         <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary whitespace-nowrap">
-          Calls: {campaign.estimatedCalls}
+          {campaign.minCalls !== undefined && campaign.maxCalls !== undefined
+            ? `${campaign.minCalls}-${campaign.maxCalls}`
+            : campaign.estimatedCalls || 0}
         </span>
       </div>
 
@@ -627,7 +640,8 @@ function HomeContent() {
             targetRegions: ["North America", "Europe"],
             startDate: "2025-10-20",
             targetCompletionDate: "2025-10-26",
-            estimatedCalls: 10,
+            minCalls: 8,
+            maxCalls: 12,
             teamMembers: [],
             screeningQuestions: [],
             selectedVendors: [],
@@ -650,7 +664,8 @@ function HomeContent() {
             targetRegions: ["Europe", "Asia Pacific"],
             startDate: "2025-10-01",
             targetCompletionDate: "2025-10-30",
-            estimatedCalls: 12,
+            minCalls: 10,
+            maxCalls: 14,
             teamMembers: [
               { id: "2", name: "Michael David", designation: "Data Analyst", avatar: "/images/avatar/Michael David.png" },
               { id: "8", name: "Richard Alan", designation: "Business Analyst", avatar: "/images/avatar/Richard Alan.png" },
@@ -679,7 +694,8 @@ function HomeContent() {
             targetRegions: ["Middle East & Africa"],
             startDate: "2025-10-26",
             targetCompletionDate: "2025-10-29",
-            estimatedCalls: 8,
+            minCalls: 6,
+            maxCalls: 10,
             teamMembers: [
               { id: "10", name: "Thomas Edward", designation: "Market Analyst", avatar: "/images/avatar/Thomas Edward.png" },
               { id: "9", name: "Robert James", designation: "UX Researcher", avatar: "/images/avatar/Robert James.png" },
@@ -709,7 +725,8 @@ function HomeContent() {
             targetRegions: ["North America", "Middle East & Africa"],
             startDate: "2025-10-20",
             targetCompletionDate: "2025-11-21",
-            estimatedCalls: 35,
+            minCalls: 30,
+            maxCalls: 40,
             teamMembers: [
               { id: "8", name: "Richard Alan", designation: "Business Analyst", avatar: "/images/avatar/Richard Alan.png" },
               { id: "10", name: "Thomas Edward", designation: "Market Analyst", avatar: "/images/avatar/Thomas Edward.png" },
@@ -735,7 +752,8 @@ function HomeContent() {
             targetRegions: ["Middle East & Africa", "Latin America"],
             startDate: "2025-10-24",
             targetCompletionDate: "2025-10-31",
-            estimatedCalls: 12,
+            minCalls: 10,
+            maxCalls: 14,
             teamMembers: [
               { id: "10", name: "Thomas Edward", designation: "Market Analyst", avatar: "/images/avatar/Thomas Edward.png" },
               { id: "6", name: "James William", designation: "Technical Writer", avatar: "/images/avatar/James William.png" },
@@ -762,7 +780,8 @@ function HomeContent() {
             targetRegions: ["Latin America"],
             startDate: "2025-10-29",
             targetCompletionDate: "2025-11-20",
-            estimatedCalls: 18,
+            minCalls: 15,
+            maxCalls: 21,
             teamMembers: [
               { id: "1", name: "John Robert", designation: "Research Lead", avatar: "/images/avatar/John Robert.png" },
               { id: "8", name: "Richard Alan", designation: "Business Analyst", avatar: "/images/avatar/Richard Alan.png" },
@@ -790,7 +809,8 @@ function HomeContent() {
             targetRegions: ["Asia Pacific", "Europe"],
             startDate: "2025-10-29",
             targetCompletionDate: "2025-11-12",
-            estimatedCalls: 15,
+            minCalls: 12,
+            maxCalls: 18,
             teamMembers: [
               { id: "6", name: "James William", designation: "Technical Writer", avatar: "/images/avatar/James William.png" },
               { id: "5", name: "Daniel Paul", designation: "Project Manager", avatar: "/images/avatar/Daniel Paul.png" },
@@ -1259,18 +1279,27 @@ function HomeContent() {
     return Array.from(projectMap.entries()).map(([projectCode, projectCampaigns]) => {
       const { projectName, isRealProject } = getProjectInfo(projectCode);
       const projectInfo = allProjects.find(p => p.projectCode === projectCode);
-      const totalCalls = projectCampaigns.reduce((sum, c) => sum + (c.estimatedCalls || 0), 0);
+      // Helper to get estimated calls (handles both old and new format)
+      const getEstCallsForCalc = (c: Campaign): number => {
+        if (c.minCalls !== undefined && c.maxCalls !== undefined) {
+          return Math.round((c.minCalls + c.maxCalls) / 2);
+        }
+        return c.estimatedCalls || 0;
+      };
+      
+      const totalCalls = projectCampaigns.reduce((sum, c) => sum + getEstCallsForCalc(c), 0);
       // Assume $1000 per call as average cost
       const avgCostPerCall = 1000;
       const totalBudget = totalCalls * avgCostPerCall;
       // Calculate spent based on progress of active campaigns
       const totalSpent = projectCampaigns.reduce((sum, c) => {
         const status = getCampaignStatus(c);
+        const calls = getEstCallsForCalc(c);
         if (status.isActive) {
           const progress = calculateProgress(c) / 100;
-          return sum + (c.estimatedCalls * avgCostPerCall * progress);
+          return sum + (calls * avgCostPerCall * progress);
         } else if (status.label === "Completed") {
-          return sum + (c.estimatedCalls * avgCostPerCall);
+          return sum + (calls * avgCostPerCall);
         }
         return sum;
       }, 0);

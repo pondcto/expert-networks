@@ -34,7 +34,9 @@ interface Campaign {
   industryVertical: string;
   startDate: string;
   targetCompletionDate: string;
-  estimatedCalls: number;
+  estimatedCalls?: number; // Keep for backward compatibility
+  minCalls?: number;
+  maxCalls?: number;
   teamMembers: { id: string; name: string; designation: string; avatar: string }[];
   createdAt: string;
   updatedAt: string;

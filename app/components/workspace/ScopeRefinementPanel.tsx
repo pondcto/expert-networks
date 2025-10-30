@@ -17,7 +17,8 @@ export interface ScopeData {
   targetRegions: string[];
   startDate: string;
   targetCompletionDate: string;
-  estimatedCalls: number;
+  minCalls: number;
+  maxCalls: number;
 }
 
 const targetRegions = [
@@ -46,7 +47,8 @@ export default function ScopeRefinementPanel({
     targetRegions: [],
     startDate: "Any",
     targetCompletionDate: "Any",
-    estimatedCalls: 10
+    minCalls: 5,
+    maxCalls: 15
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const datePickerRef = useRef<HTMLDivElement>(null);
@@ -56,7 +58,7 @@ export default function ScopeRefinementPanel({
   const [showHints, setShowHints] = useState({
     targetRegions: false,
     dates: false,
-    estimatedCalls: false
+    calls: false
   });
   
   const [dateRange, setDateRange] = useState<Array<{ startDate: Date; endDate: Date; key: string }>>([
@@ -70,11 +72,26 @@ export default function ScopeRefinementPanel({
   // Load campaign data when it becomes available (but not while user is editing)
   useEffect(() => {
     if (campaignData && !isEditing) {
+      // Handle backward compatibility: if old estimatedCalls exists, use it for range
+      let minCalls = 5;
+      let maxCalls = 15;
+      
+      if (campaignData.minCalls !== undefined && campaignData.maxCalls !== undefined) {
+        minCalls = campaignData.minCalls;
+        maxCalls = campaignData.maxCalls;
+      } else if (campaignData.estimatedCalls && !Number.isNaN(campaignData.estimatedCalls)) {
+        // Convert old single value to a range (±5 from estimated)
+        const estimate = campaignData.estimatedCalls;
+        minCalls = Math.max(1, estimate - 5);
+        maxCalls = estimate + 5;
+      }
+      
       setFormData({
         targetRegions: campaignData.targetRegions || [],
         startDate: campaignData.startDate || "Any",
         targetCompletionDate: campaignData.targetCompletionDate || "Any",
-        estimatedCalls: Number.isNaN(campaignData.estimatedCalls) || !campaignData.estimatedCalls ? 10 : campaignData.estimatedCalls
+        minCalls,
+        maxCalls
       });
       
       // Update date range if campaign has dates
@@ -123,11 +140,23 @@ export default function ScopeRefinementPanel({
 
   const handleRegionChange = async (region: string, checked: boolean) => {
     setIsEditing(false); // Allow reload after save
+    const newRegions = checked 
+      ? [...formData.targetRegions, region]
+      : formData.targetRegions.filter(r => r !== region);
+    
+    // If trying to deselect all regions, restore previous values instead
+    if (newRegions.length === 0 && !isNewCampaign && campaignData?.targetRegions && campaignData.targetRegions.length > 0) {
+      console.log('Cannot deselect all regions. Restoring previous values...');
+      setFormData({
+        ...formData,
+        targetRegions: campaignData.targetRegions
+      });
+      return;
+    }
+    
     const newData = {
       ...formData,
-      targetRegions: checked 
-        ? [...formData.targetRegions, region]
-        : formData.targetRegions.filter(r => r !== region)
+      targetRegions: newRegions
     };
     setFormData(newData);
     onDataChange?.(newData);
@@ -161,10 +190,62 @@ export default function ScopeRefinementPanel({
   // Auto-save on blur for existing campaigns
   const handleBlur = async () => {
     setIsEditing(false);
+    
     if (!isNewCampaign && campaignData?.id) {
+      // Check if any required field is blank/invalid
+      const hasValidDates = !!(formData.startDate && formData.startDate !== "Any" && 
+                              formData.targetCompletionDate && formData.targetCompletionDate !== "Any");
+      const hasValidCalls = formData.minCalls > 0 && 
+                           formData.maxCalls > 0 && 
+                           formData.minCalls <= formData.maxCalls &&
+                           !Number.isNaN(formData.minCalls) &&
+                           !Number.isNaN(formData.maxCalls);
+      
+      const isAnyRequiredFieldBlank = 
+        formData.targetRegions.length === 0 || 
+        !hasValidDates || 
+        !hasValidCalls;
+      
+      // If any required field is blank/invalid, restore from campaignData instead of saving
+      if (isAnyRequiredFieldBlank) {
+        console.log('Required field(s) are blank or invalid. Restoring previous values...');
+        
+        // Handle backward compatibility when restoring
+        let minCalls = 5;
+        let maxCalls = 15;
+        if (campaignData.minCalls !== undefined && campaignData.maxCalls !== undefined) {
+          minCalls = campaignData.minCalls;
+          maxCalls = campaignData.maxCalls;
+        } else if (campaignData.estimatedCalls && !Number.isNaN(campaignData.estimatedCalls)) {
+          const estimate = campaignData.estimatedCalls;
+          minCalls = Math.max(1, estimate - 5);
+          maxCalls = estimate + 5;
+        }
+        
+        setFormData({
+          targetRegions: campaignData.targetRegions || [],
+          startDate: campaignData.startDate || "Any",
+          targetCompletionDate: campaignData.targetCompletionDate || "Any",
+          minCalls,
+          maxCalls
+        });
+        
+        // Also restore date range picker state
+        if (campaignData.startDate && campaignData.startDate !== "Any" &&
+            campaignData.targetCompletionDate && campaignData.targetCompletionDate !== "Any") {
+          setDateRange([{
+            startDate: new Date(campaignData.startDate),
+            endDate: new Date(campaignData.targetCompletionDate),
+            key: 'selection'
+          }]);
+        }
+        return;
+      }
+      
+      // If all required fields are valid, save
       try {
         console.log('Auto-saving campaign on blur (Campaign Scope)...');
-        await saveCampaign();
+        await saveCampaign(formData);
       } catch (error) {
         console.error('Failed to auto-save campaign:', error);
       }
@@ -175,9 +256,12 @@ export default function ScopeRefinementPanel({
   React.useEffect(() => {
     const hasValidDates = !!(formData.startDate && formData.startDate !== "Any" && 
                          formData.targetCompletionDate && formData.targetCompletionDate !== "Any");
+    const hasValidCalls = formData.minCalls > 0 && 
+                         formData.maxCalls > 0 && 
+                         formData.minCalls <= formData.maxCalls;
     const isCompleted = formData.targetRegions.length > 0 && 
                        hasValidDates && 
-                       formData.estimatedCalls > 0;
+                       hasValidCalls;
     onFormChange?.(isCompleted);
   }, [formData, onFormChange]);
 
@@ -187,12 +271,14 @@ export default function ScopeRefinementPanel({
       const hasValidDates = !!(formData.startDate && formData.startDate !== "Any" && 
                               formData.targetCompletionDate && formData.targetCompletionDate !== "Any");
       const hasRegions = formData.targetRegions.length > 0;
-      const hasValidCalls = formData.estimatedCalls > 0;
+      const hasValidCalls = formData.minCalls > 0 && 
+                           formData.maxCalls > 0 && 
+                           formData.minCalls <= formData.maxCalls;
       
       setShowHints({
         targetRegions: !hasRegions,
         dates: !hasValidDates,
-        estimatedCalls: !hasValidCalls
+        calls: !hasValidCalls
       });
 
       // Auto-hide hints after 3 seconds
@@ -200,7 +286,7 @@ export default function ScopeRefinementPanel({
         setShowHints({
           targetRegions: false,
           dates: false,
-          estimatedCalls: false
+          calls: false
         });
       }, 3000);
     };
@@ -226,37 +312,45 @@ export default function ScopeRefinementPanel({
     return `${year}-${month}-${day}`;
   };
   
-  const handleDateRangeChange = async (ranges: RangeKeyDict) => {
+  const handleDateRangeChange = (ranges: RangeKeyDict) => {
     const selection = ranges.selection;
     if (selection && selection.startDate && selection.endDate) {
-      setIsEditing(false); // Allow reload after save
+      // Only update the visual date range picker, don't save yet
       setDateRange([{
         startDate: selection.startDate,
         endDate: selection.endDate,
         key: 'selection'
       }]);
-      
-      // Update form data using local system timezone (works for EST or any timezone)
-      const startDate = formatLocalDate(selection.startDate);
-      const endDate = formatLocalDate(selection.endDate);
-      
-      const newData = {
-        ...formData,
-        startDate,
-        targetCompletionDate: endDate
-      };
-      
-      setFormData(newData);
-      onDataChange?.(newData);
-      
-      // Auto-save after date change - pass the new data directly
-      if (!isNewCampaign && campaignData?.id) {
-        try {
-          console.log('Auto-saving campaign after date change...');
-          await saveCampaign(newData);
-        } catch (error) {
-          console.error('Failed to auto-save campaign:', error);
-        }
+    }
+  };
+  
+  // Apply dates when "Apply" button is clicked
+  const handleApplyDates = async () => {
+    setIsEditing(false); // Allow reload after save
+    
+    // Update form data using local system timezone (works for EST or any timezone)
+    const startDate = formatLocalDate(dateRange[0].startDate);
+    const endDate = formatLocalDate(dateRange[0].endDate);
+    
+    const newData = {
+      ...formData,
+      startDate,
+      targetCompletionDate: endDate
+    };
+    
+    setFormData(newData);
+    onDataChange?.(newData);
+    
+    // Close the date picker
+    setShowDatePicker(false);
+    
+    // Auto-save after date change - pass the new data directly
+    if (!isNewCampaign && campaignData?.id) {
+      try {
+        console.log('Auto-saving campaign after applying date change...');
+        await saveCampaign(newData);
+      } catch (error) {
+        console.error('Failed to auto-save campaign:', error);
       }
     }
   };
@@ -275,6 +369,9 @@ export default function ScopeRefinementPanel({
       endDate: new Date(),
       key: 'selection'
     }]);
+    
+    // Close the date picker
+    setShowDatePicker(false);
     
     // Auto-save after clearing dates - pass the new data directly
     if (!isNewCampaign && campaignData?.id) {
@@ -343,6 +440,24 @@ export default function ScopeRefinementPanel({
                     left: rect.left + rect.width / 2
                   });
                 }
+                
+                // When opening the date picker, restore the current saved dates
+                if (!showDatePicker) {
+                  if (formData.startDate !== "Any" && formData.targetCompletionDate !== "Any") {
+                    setDateRange([{
+                      startDate: new Date(formData.startDate),
+                      endDate: new Date(formData.targetCompletionDate),
+                      key: 'selection'
+                    }]);
+                  } else {
+                    setDateRange([{
+                      startDate: new Date(),
+                      endDate: new Date(),
+                      key: 'selection'
+                    }]);
+                  }
+                }
+                
                 setShowDatePicker(!showDatePicker);
               }}
               className={`w-1/2 px-3 py-2 dark:bg-dark-background-secondary border rounded text-light-text dark:text-dark-text focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent cursor-pointer hover:border-primary-500 transition-colors flex items-center justify-between group ${
@@ -606,7 +721,7 @@ export default function ScopeRefinementPanel({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setShowDatePicker(false)}
+                    onClick={handleApplyDates}
                     className="px-3 py-1 bg-primary-500 text-white rounded text-xs font-medium hover:bg-primary-600 transition-colors"
                   >
                     Apply
@@ -616,28 +731,131 @@ export default function ScopeRefinementPanel({
             )}
           </div>
 
-          {/* Estimated number of calls */}
-          <div className="w-1/2">
-            <label className="block  font-medium text-light-text dark:text-dark-text mb-1">
-              Estimated number of calls<span className="text-red-500">*</span>
+          {/* Number of calls range */}
+          <div>
+            <label className="block font-medium text-light-text dark:text-dark-text mb-1">
+              Number of calls<span className="text-red-500">*</span>
             </label>
-            <div className="relative">
-              <input
-                type="number"
-                value={Number.isNaN(formData.estimatedCalls) ? '' : formData.estimatedCalls}
-                onChange={(e) => handleInputChange("estimatedCalls", parseInt(e.target.value) || 0)}
-                onFocus={handleFocus}
-                onBlur={handleBlur}
-                className={`w-full px-2 py-1 dark:bg-dark-background-secondary border rounded text-light-text dark:text-dark-text placeholder-light-text-tertiary dark:placeholder-dark-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent ${
-                  showHints.estimatedCalls ? 'border-red-500' : 'border-light-border dark:border-dark-border'
-                }`}
-              />
-              {showHints.estimatedCalls && (
-                <div className="absolute top-full left-0 text-xs text-red-600 dark:text-red-400">
-                  Please enter estimated number of calls
+            <div className={`space-y-3 p-3 border rounded ${
+              showHints.calls ? 'border-red-500 bg-red-50/50 dark:bg-red-900/10' : 'border-light-border dark:border-dark-border'
+            }`}>
+              {/* Min and Max Input Fields */}
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="block text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">
+                    Minimum
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={formData.maxCalls}
+                    value={Number.isNaN(formData.minCalls) ? '' : formData.minCalls}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 1;
+                      handleInputChange("minCalls", Math.max(1, Math.min(value, formData.maxCalls)));
+                    }}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
+                    className="w-full px-2 py-1.5 dark:bg-dark-background-secondary border border-light-border dark:border-dark-border rounded text-light-text dark:text-dark-text focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent"
+                  />
                 </div>
-              )}
+                <div className="flex-1">
+                  <label className="block text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">
+                    Maximum
+                  </label>
+                  <input
+                    type="number"
+                    min={formData.minCalls}
+                    max="100"
+                    value={Number.isNaN(formData.maxCalls) ? '' : formData.maxCalls}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || formData.minCalls;
+                      handleInputChange("maxCalls", Math.max(formData.minCalls, Math.min(value, 100)));
+                    }}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
+                    className="w-full px-2 py-1.5 dark:bg-dark-background-secondary border border-light-border dark:border-dark-border rounded text-light-text dark:text-dark-text focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Visual Range Slider */}
+              <div className="relative pt-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary">1</span>
+                  <div className="flex-1 relative">
+                    {/* Track */}
+                    <div className="absolute top-1/2 -translate-y-1/2 w-full h-1.5 bg-light-background-secondary dark:bg-dark-background-secondary rounded-full" />
+                    
+                    {/* Active Range */}
+                    <div 
+                      className="absolute top-1/2 -translate-y-1/2 h-1.5 bg-primary-500 rounded-full"
+                      style={{
+                        left: `${((formData.minCalls - 1) / 99) * 100}%`,
+                        right: `${100 - ((formData.maxCalls - 1) / 99) * 100}%`
+                      }}
+                    />
+                    
+                    {/* Min Thumb */}
+                    <input
+                      type="range"
+                      min="1"
+                      max="100"
+                      value={formData.minCalls}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value);
+                        if (value <= formData.maxCalls) {
+                          handleInputChange("minCalls", value);
+                        }
+                      }}
+                      onFocus={handleFocus}
+                      onBlur={handleBlur}
+                      className="absolute w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary-500 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white dark:[&::-webkit-slider-thumb]:border-dark-background [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary-500 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white dark:[&::-moz-range-thumb]:border-dark-background [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:hover:scale-110 [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:pointer-events-auto"
+                      style={{ 
+                        zIndex: 5,
+                        pointerEvents: 'none'
+                      }}
+                    />
+                    
+                    {/* Max Thumb */}
+                    <input
+                      type="range"
+                      min="1"
+                      max="100"
+                      value={formData.maxCalls}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value);
+                        if (value >= formData.minCalls) {
+                          handleInputChange("maxCalls", value);
+                        }
+                      }}
+                      onFocus={handleFocus}
+                      onBlur={handleBlur}
+                      className="absolute w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary-500 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white dark:[&::-webkit-slider-thumb]:border-dark-background [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary-500 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white dark:[&::-moz-range-thumb]:border-dark-background [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:hover:scale-110 [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:pointer-events-auto"
+                      style={{ 
+                        zIndex: 4,
+                        pointerEvents: 'none'
+                      }}
+                    />
+                  </div>
+                  <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary">100</span>
+                </div>
+              </div>
+              
+              {/* Range Display */}
+              <div className="text-center">
+                <span className="text-sm font-medium text-primary-500">
+                  {formData.minCalls} - {formData.maxCalls} calls
+                </span>
+              </div>
             </div>
+            
+            {showHints.calls && (
+              <div className="mt-1 text-xs text-red-600 dark:text-red-400">
+                Please enter a valid range (min must be ≤ max)
+              </div>
+            )}
+            
             <p className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary mt-1">
               This helps us estimate your campaign budget
             </p>
