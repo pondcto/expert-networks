@@ -595,7 +595,7 @@ export default function ExpertSchedulingPanel({ selectedExpert }: ExpertScheduli
                   </span>
                 </div>
                 <div className="max-h-32 overflow-y-auto p-3 bg-light-background dark:bg-dark-background rounded-lg border border-light-border dark:border-dark-border">
-                  <div className="flex gap-2 overflow-x-auto min-w-0">
+                  <div className="flex flex-wrap gap-2 min-w-0">
                     {getFormattedSlots().map((slot, index) => (
                       <div
                         key={index}
@@ -620,7 +620,7 @@ export default function ExpertSchedulingPanel({ selectedExpert }: ExpertScheduli
                     Invitations Will Be Sent To
                   </h4>
                   <div className="p-3 bg-light-background dark:bg-dark-background rounded-lg border border-light-border dark:border-dark-border">
-                    <div className="flex gap-2 overflow-x-auto min-w-0">
+                    <div className="flex flex-wrap gap-2 min-w-0">
                       {teamMembers.filter(member => requiredMemberIds.includes(member.id)).map((member) => (
                         <div
                           key={member.id}
