@@ -1,11 +1,15 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useCampaign } from "../../lib/campaign-context";
+import { useCampaign, CampaignData } from "../../lib/campaign-context";
 import { Calendar, X } from "lucide-react";
 import { DateRange, RangeKeyDict } from "react-date-range";
 import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
+
+interface ExtendedCampaignData extends CampaignData {
+  targetRegionsOther?: string;
+}
 
 export interface ScopeRefinementPanelProps {
   onSubmit?: (data: ScopeData) => void;
@@ -95,7 +99,7 @@ export default function ScopeRefinementPanel({
         targetCompletionDate: campaignData.targetCompletionDate || "Any",
         minCalls,
         maxCalls,
-        targetRegionsOther: (campaignData as any).targetRegionsOther || ""
+        targetRegionsOther: (campaignData as ExtendedCampaignData).targetRegionsOther || ""
       });
       
       // Update date range if campaign has dates

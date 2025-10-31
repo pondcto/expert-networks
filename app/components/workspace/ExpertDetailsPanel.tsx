@@ -2,8 +2,16 @@
 
 import React, { useState } from "react";
 import { ProposedExpert } from "../../data/mockData";
-import { useCampaign } from "../../lib/campaign-context";
-import { Star, X, Minus } from "lucide-react";
+import { useCampaign, CampaignData } from "../../lib/campaign-context";
+import { Star, X } from "lucide-react";
+
+interface ExtendedCampaignData extends Omit<CampaignData, 'screeningQuestions'> {
+  screeningQuestions?: Array<{
+    id: string;
+    text: string;
+    subQuestions?: Array<{ id: string; text: string }>;
+  }>;
+}
 
 interface ExpertDetailsProps {
   selectedExpert?: ProposedExpert | null;
@@ -63,9 +71,8 @@ export default function ExpertDetailsPanel({ selectedExpert, expert }: ExpertDet
 
   // Generate sample screening responses from current campaign questions
   const buildSampleResponses = (): { question: string; answer: string }[] | undefined => {
-    const questions = (campaignData as any)?.screeningQuestions as
-      | Array<{ id: string; text: string; subQuestions?: Array<{ id: string; text: string }> }>
-      | undefined;
+    const extendedCampaign = campaignData as ExtendedCampaignData | null;
+    const questions = extendedCampaign?.screeningQuestions;
     if (!questions || questions.length === 0) return undefined;
 
     const expertSkills = selectedExpert?.skills || expert?.skills || defaultExpert.skills || [];

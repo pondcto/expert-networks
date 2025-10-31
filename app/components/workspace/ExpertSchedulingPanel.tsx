@@ -18,15 +18,10 @@ import {
 } from "../../utils/dateUtils";
 import { Check, Users, X, Send } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { CampaignData } from "../../lib/campaign-context";
 
 interface ExpertSchedulingPanelProps {
   selectedExpert?: ProposedExpert | null;
-}
-
-interface AvailabilitySlot {
-  date: Date;
-  time: string;
-  available: boolean;
 }
 
 interface TeamMember {
@@ -34,6 +29,12 @@ interface TeamMember {
   name: string;
   designation: string;
   avatar: string;
+}
+
+interface ExtendedCampaignData extends CampaignData {
+  id?: string;
+  completedCalls?: number;
+  scheduledCalls?: number;
 }
 
 export default function ExpertSchedulingPanel({ selectedExpert }: ExpertSchedulingPanelProps) {
@@ -54,7 +55,8 @@ export default function ExpertSchedulingPanel({ selectedExpert }: ExpertScheduli
     if (campaignData?.teamMembers) {
       setTeamMembers(campaignData.teamMembers as TeamMember[]);
       // Load required members from localStorage (per campaign)
-      const cid = (campaignData as any)?.id;
+      const extendedCampaign = campaignData as ExtendedCampaignData;
+      const cid = extendedCampaign?.id;
       const saved = cid ? localStorage.getItem(`required_members_${cid}`) : null;
       if (saved) {
         try { setRequiredMemberIds(JSON.parse(saved)); } catch {}
@@ -71,9 +73,9 @@ export default function ExpertSchedulingPanel({ selectedExpert }: ExpertScheduli
   // Populate all available time zones (IANA)
   useEffect(() => {
     try {
-      // @ts-ignore: supportedValuesOf may not exist in older TS lib declarations
-      const zones: string[] = typeof (Intl as any).supportedValuesOf === 'function'
-        ? (Intl as any).supportedValuesOf('timeZone')
+      const intlWithSupportedValuesOf = Intl as typeof Intl & { supportedValuesOf?: (type: string) => string[] };
+      const zones: string[] = typeof intlWithSupportedValuesOf.supportedValuesOf === 'function'
+        ? intlWithSupportedValuesOf.supportedValuesOf('timeZone')
         : [
             'UTC','Etc/GMT+12','Pacific/Midway','Pacific/Honolulu','America/Anchorage','America/Los_Angeles',
             'America/Denver','America/Chicago','America/New_York','America/Sao_Paulo','Atlantic/Azores',
@@ -288,7 +290,8 @@ export default function ExpertSchedulingPanel({ selectedExpert }: ExpertScheduli
                                 src={member.avatar}
                                 alt={member.name}
                                 onClick={() => {
-                                  const cid = (campaignData as any)?.id;
+                                  const extendedCampaign = campaignData as ExtendedCampaignData;
+                                  const cid = extendedCampaign?.id;
                                   if (isRequired) {
                                     // Remove from required
                                     const next = requiredMemberIds.filter(x => x !== member.id);
@@ -338,12 +341,13 @@ export default function ExpertSchedulingPanel({ selectedExpert }: ExpertScheduli
                           <img
                             src={m.avatar}
                             alt={m.name}
-                            onClick={() => {
-                              // Remove from required
-                              const next = requiredMemberIds.filter(x => x !== m.id);
-                              setRequiredMemberIds(next);
-                              const cid = (campaignData as any)?.id;
-                              if (cid) localStorage.setItem(`required_members_${cid}`, JSON.stringify(next));
+                              onClick={() => {
+                                // Remove from required
+                                const next = requiredMemberIds.filter(x => x !== m.id);
+                                setRequiredMemberIds(next);
+                                const extendedCampaign = campaignData as ExtendedCampaignData;
+                                const cid = extendedCampaign?.id;
+                                if (cid) localStorage.setItem(`required_members_${cid}`, JSON.stringify(next));
                             }}
                             className="w-8 h-8 rounded-full border-2 border-primary-400 dark:border-primary-600 object-cover cursor-pointer hover:border-primary-500 dark:hover:border-primary-500 hover:scale-110 transition-all"
                           />
@@ -391,7 +395,8 @@ export default function ExpertSchedulingPanel({ selectedExpert }: ExpertScheduli
               onChange={(e) => {
                 const tz = e.target.value;
                 setTimeZone(tz);
-                const cid = (campaignData as any)?.id;
+                const extendedCampaign = campaignData as ExtendedCampaignData;
+                const cid = extendedCampaign?.id;
                 if (cid) localStorage.setItem(`timezone_${cid}`, tz);
               }}
               className="w-full px-2 py-1 text-xs border border-light-border dark:border-dark-border rounded bg-white dark:bg-dark-background text-light-text dark:text-dark-text focus:outline-none focus:ring-1 focus:ring-primary-500"

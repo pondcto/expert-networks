@@ -1,21 +1,33 @@
 "use client";
 import React from "react";
-import { useCampaign } from "../../lib/campaign-context";
+import { useCampaign, CampaignData } from "../../lib/campaign-context";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+
+interface ExtendedCampaignData extends CampaignData {
+    completedCalls?: number;
+    scheduledCalls?: number;
+    scopeRefinement?: {
+        numberOfCalls?: {
+            min?: number;
+            max?: number;
+        };
+    };
+}
 
 export default function CostBreakdownPanel() {
     const { campaignData } = useCampaign();
     
     // Get estimated calls (target) - exactly matching dashboard logic
-    const getEstimatedCalls = (c: any): number => {
+    const getEstimatedCalls = (c: ExtendedCampaignData | null): number => {
+        if (!c) return 0;
         if (c.minCalls !== undefined && c.maxCalls !== undefined) {
             return Math.round((c.minCalls + c.maxCalls) / 2);
         }
         return c.estimatedCalls || 0;
     };
     
-    const campaign = campaignData as any;
-    const targetCalls = getEstimatedCalls(campaign || {});
+    const campaign = campaignData as ExtendedCampaignData | null;
+    const targetCalls = getEstimatedCalls(campaign);
     const performedCalls = Math.max(0, Math.min((campaign?.completedCalls ?? 0), targetCalls));
     const scheduledCalls = Math.max(0, Math.min((campaign?.scheduledCalls ?? 0), Math.max(0, targetCalls - performedCalls)));
     const remainderCalls = Math.max(0, targetCalls - performedCalls - scheduledCalls);
