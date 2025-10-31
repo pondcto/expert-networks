@@ -96,14 +96,14 @@ export default function InterviewCalendarPanel() {
             Interview Calendar
           </h3>
           {/* Expert Color Legend */}
-          <div className="flex flex-wrap gap-3 text-xs text-light-text-secondary dark:text-dark-text-secondary">
+          {/* <div className="flex gap-3 overflow-x-auto min-w-0 text-xs text-light-text-secondary dark:text-dark-text-secondary">
             {interviews.map((interview, idx) => (
-              <div key={idx} className="flex items-center gap-1">
-                <div className={`w-2 h-2 rounded-full ${getExpertColorDot(interview.colorTag || "gray")}`}></div>
-                <span>{interview.expertName}</span>
+              <div key={idx} className="flex items-center gap-1 flex-shrink-0 whitespace-nowrap">
+                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${getExpertColorDot(interview.colorTag || "gray")}`}></div>
+                <span className="truncate">{interview.expertName}</span>
               </div>
             ))}
-          </div>
+          </div> */}
         </div>
         <div className="flex items-center gap-2">
           <button 

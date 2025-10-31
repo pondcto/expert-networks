@@ -206,7 +206,7 @@ export default function TeamMembersPanel({
                   <div className=" font-medium text-light-text dark:text-dark-text truncate">
                     {member.name}
                   </div>
-                  <div className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary">
+                  <div className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary truncate">
                     {member.designation}
                   </div>
                 </div>
@@ -282,10 +282,10 @@ export default function TeamMembersPanel({
                       className="w-12 h-12 rounded-lg object-cover"
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-light-text dark:text-dark-text">
+                      <div className="font-semibold text-light-text dark:text-dark-text truncate">
                         {member.name}
                       </div>
-                      <div className="text-sm text-light-text-tertiary dark:text-dark-text-tertiary">
+                      <div className="text-sm text-light-text-tertiary dark:text-dark-text-tertiary truncate">
                         {member.designation}
                       </div>
                     </div>

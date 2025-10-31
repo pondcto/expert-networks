@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { ProposedExpert } from "../../data/mockData";
+import { useCampaign } from "../../lib/campaign-context";
 import { Star, X, Minus } from "lucide-react";
 
 interface ExpertDetailsProps {
@@ -21,6 +22,7 @@ interface ExpertDetailsProps {
 }
 
 export default function ExpertDetailsPanel({ selectedExpert, expert }: ExpertDetailsProps) {
+  const { campaignData } = useCampaign();
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [ratings, setRatings] = useState({
     relevance: 0,
@@ -59,6 +61,50 @@ export default function ExpertDetailsPanel({ selectedExpert, expert }: ExpertDet
     ]
   };
 
+  // Generate sample screening responses from current campaign questions
+  const buildSampleResponses = (): { question: string; answer: string }[] | undefined => {
+    const questions = (campaignData as any)?.screeningQuestions as
+      | Array<{ id: string; text: string; subQuestions?: Array<{ id: string; text: string }> }>
+      | undefined;
+    if (!questions || questions.length === 0) return undefined;
+
+    const expertSkills = selectedExpert?.skills || expert?.skills || defaultExpert.skills || [];
+
+    return questions.map((q, idx) => {
+      // If sub-questions exist, format as numbered prompts with generated responses beneath
+      if (q.subQuestions && q.subQuestions.length > 0) {
+        const name = selectedExpert?.name || "Jane Doe";
+        const [firstName, ...rest] = name.split(" ");
+        const lastName = rest.length > 0 ? rest[rest.length - 1] : "Doe";
+        const lines: string[] = [];
+        q.subQuestions.forEach((sq, i) => {
+          lines.push(`${i + 1}. ${sq.text}`);
+          let resp = "";
+          const lower = sq.text.toLowerCase();
+          if (lower.includes("first name")) resp = firstName || "John";
+          else if (lower.includes("last name")) resp = lastName || "Doe";
+          else if (lower.includes("name")) resp = name;
+          else {
+            const skill = expertSkills[(idx + i) % Math.max(1, expertSkills.length)] || "Relevant experience";
+            resp = `Experience: ${skill}`;
+          }
+          lines.push(resp);
+          lines.push("");
+        });
+        return { question: q.text, answer: lines.join("\n") };
+      }
+
+      // Otherwise, produce a direct answer to the super-question (no numbering)
+      const topSkill = expertSkills[idx % Math.max(1, expertSkills.length)] || "relevant domain";
+      const nextSkill = expertSkills[(idx + 1) % Math.max(1, expertSkills.length)] || "adjacent specialization";
+      const answer = `I have hands-on experience in ${topSkill} with additional exposure to ${nextSkill}. My background includes end-to-end project work, stakeholder interviews, and translating findings into practical recommendations.`;
+      return {
+        question: q.text,
+        answer,
+      };
+    });
+  };
+
   // Convert selectedExpert to the expected format or use default
   const getExpertData = () => {
     if (selectedExpert) {
@@ -69,10 +115,16 @@ export default function ExpertDetailsPanel({ selectedExpert, expert }: ExpertDet
         about: selectedExpert.description,
         workHistory: selectedExpert.history,
         skills: selectedExpert.skills,
-        screeningResponses: selectedExpert.screeningResponses
+        screeningResponses:
+          buildSampleResponses() || selectedExpert.screeningResponses || defaultExpert.screeningResponses,
       };
     }
-    return expert || defaultExpert;
+    // If no selected expert, prefer campaign-based sample responses when possible
+    const base = expert || defaultExpert;
+    return {
+      ...base,
+      screeningResponses: buildSampleResponses() || base.screeningResponses,
+    };
   };
 
   const expertData = getExpertData();
@@ -128,6 +180,39 @@ export default function ExpertDetailsPanel({ selectedExpert, expert }: ExpertDet
     );
   };
 
+  // Parse numbered responses into blocks: "1. Prompt" then response text
+  const renderStructuredAnswer = (answer: string) => {
+    if (!answer) return null;
+    const blockRegex = /(?:^|\n)\s*(\d+)\.\s+([^\n]+)\n([\s\S]*?)(?=(\n\s*\d+\.\s)|$)/g;
+    const blocks: Array<{ q: string; a: string }> = [];
+    let m: RegExpExecArray | null;
+    while ((m = blockRegex.exec(answer)) !== null) {
+      blocks.push({ q: m[2].trim(), a: (m[3] || "").trim() });
+    }
+
+    if (blocks.length > 0) {
+      return (
+        <ol className="list-decimal pl-5 space-y-2 text-sm">
+          {blocks.map((b, idx) => (
+            <li key={idx} className="text-light-text dark:text-dark-text">
+              <div className="font-medium">{b.q}</div>
+              {b.a && (
+                <div className="mt-1 text-light-text-secondary dark:text-dark-text-secondary whitespace-pre-line">{b.a}</div>
+              )}
+            </li>
+          ))}
+        </ol>
+      );
+    }
+
+    // Fallback: paragraph with newlines preserved
+    return (
+      <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary leading-relaxed whitespace-pre-line">
+        {answer}
+      </p>
+    );
+  };
+
   return (
     <div className="card h-full w-full flex flex-col overflow-hidden pb-0 px-3 pt-3">
       <div className="flex items-center justify-between mb-3">
@@ -138,7 +223,7 @@ export default function ExpertDetailsPanel({ selectedExpert, expert }: ExpertDet
           <button 
             className="px-4 py-4 text-white text-sm font-medium rounded-md transition-colors h-6 flex items-center justify-center bg-primary-500 hover:bg-primary-600"
           >
-            Request Interview
+            Request Availability
           </button>
         )}
       </div>
@@ -164,11 +249,11 @@ export default function ExpertDetailsPanel({ selectedExpert, expert }: ExpertDet
           {/* Skills Section */}
           <div>
             <h5 className="font-semibold text-light-text dark:text-dark-text mb-3">Skills</h5>
-            <div className="flex flex-wrap gap-2">
+            <div className="gap-2 min-w-0 flex flex-wrap">
               {expertData.skills.map((skill, index) => (
                 <span
                   key={index}
-                  className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  className={`px-3 py-1 rounded-full text-xs font-medium flex-shrink-0 whitespace-nowrap ${
                     skill === "+20 more"
                       ? "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
                       : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
@@ -186,12 +271,10 @@ export default function ExpertDetailsPanel({ selectedExpert, expert }: ExpertDet
             <div className="space-y-4">
               {expertData.screeningResponses.map((response, index) => (
                 <div key={index} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                  <h6 className="font-medium text-light-text dark:text-dark-text mb-3">
+                  <h6 className="font-medium text-light-text dark:text-dark-text mb-2">
                     {response.question}
                   </h6>
-                  <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary leading-relaxed whitespace-pre-line">
-                    {response.answer}
-                  </p>
+                  {renderStructuredAnswer(response.answer)}
                 </div>
               ))}
             </div>

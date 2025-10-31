@@ -7,7 +7,8 @@ import Logo from "./components/Logo";
 import { useTheme } from "./providers/theme-provider";
 import UserMenu from "./components/UserMenu";
 import NewProjectModal from "./components/NewProjectModal";
-import { Sun, Moon, Calendar, FolderOpen, Plus, ChevronDown, ChevronRight, Trash2, GripVertical } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "./components/ui/tooltip";
+import { Sun, Moon, Calendar, FolderOpen, Plus, Trash2, GripVertical, Folder } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   DndContext,
@@ -38,6 +39,9 @@ interface Campaign {
   estimatedCalls?: number; // Keep for backward compatibility
   minCalls?: number;
   maxCalls?: number;
+  // Accurate call tracking (optional, defaults to 0 if not present)
+  completedCalls?: number;
+  scheduledCalls?: number;
   teamMembers: { id: string; name: string; designation: string; avatar: string }[];
   createdAt: string;
   updatedAt: string;
@@ -284,8 +288,8 @@ function DraggableCampaignCardRow({
       </div>
 
       {/* Industry */}
-      <div className="flex-1 min-w-0 text-center">
-        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate">
+      <div className="flex-1 min-w-0">
+        <p className="ml-[4vw] text-xs text-light-text-secondary dark:text-dark-text-secondary truncate">
           {campaign.industryVertical}
         </p>
       </div>
@@ -319,52 +323,77 @@ function DraggableCampaignCardRow({
       </div>
 
       {/* Divider */}
-      <div className="flex-shrink-0 w-px h-8 bg-light-border dark:bg-dark-border mx-4"></div>
+      <div className="flex-shrink-0 w-px h-8 bg-light-border dark:bg-dark-border ml-4"></div>
 
-      {/* Budget / Cost Bar */}
+      {/* Number of Calls Progress Bar */}
       <div className="flex-1 min-w-0">
-        <div className="space-y-1 px-3">
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-1">
-              <span className="text-light-text-tertiary dark:text-dark-text-tertiary">Budget:</span>
-              <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary truncate">
-                {formatCurrency(totalSpent)} / {formatCurrency(totalBudget)}
-              </span>
-            </div>
-            <span className={`font-medium ${
-              costPercentage > 90 ? 'text-red-600 dark:text-red-400' : 
-              costPercentage > 75 ? 'text-orange-600 dark:text-orange-400' : 
-              'text-green-600 dark:text-green-400'
-            }`}>
-              {isNaN(costPercentage) ? 0 : costPercentage}%
-            </span>
-          </div>
-          <div className="w-full bg-light-background-secondary dark:bg-dark-background-tertiary rounded-full h-1.5">
-            <div 
-              className={`h-1.5 rounded-full transition-all ${
-                costPercentage > 90 ? 'bg-red-500' : 
-                costPercentage > 75 ? 'bg-orange-500' : 
-                'bg-green-500'
-              }`}
-              style={{ width: `${isNaN(costPercentage) ? 0 : costPercentage}%` }}
-            />
-          </div>
+        <div className="px-3 py-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div 
+                className="w-full bg-light-background-secondary dark:bg-dark-background-tertiary rounded-full h-2  flex overflow-hidden cursor-help"
+              >
+                {(() => {
+                  const targetCalls = estimatedCalls || 0;
+                  const performedCalls = Math.max(0, Math.min(campaign.completedCalls ?? 0, targetCalls));
+                  const scheduledCalls = Math.max(0, Math.min((campaign.scheduledCalls ?? 0), Math.max(0, targetCalls - performedCalls)));
+                  const performedPct = targetCalls > 0 ? (performedCalls / targetCalls) * 100 : 0;
+                  const scheduledPct = targetCalls > 0 ? (scheduledCalls / targetCalls) * 100 : 0;
+                  return (
+                    <>
+                      <div 
+                        className="h-2 bg-green-500 transition-all"
+                        style={{ width: `${performedPct}%` }}
+                      />
+                      <div 
+                        className="h-2 bg-yellow-500 transition-all"
+                        style={{ width: `${scheduledPct}%` }}
+                      />
+                    </>
+                  );
+                })()}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent 
+              side="top" 
+              className="bg-gray-900 dark:bg-gray-700 text-white border-none"
+            >
+              <div className="text-xs">
+                {(() => {
+                  const targetCalls = estimatedCalls || 0;
+                  const performedCalls = Math.max(0, Math.min(campaign.completedCalls ?? 0, targetCalls));
+                  const scheduledCalls = Math.max(0, Math.min((campaign.scheduledCalls ?? 0), Math.max(0, targetCalls - performedCalls)));
+                  return (
+                    <>
+                      <span className="text-green-400">{performedCalls} performed</span>
+                      {" / "}
+                      <span className="text-yellow-400">{scheduledCalls} scheduled</span>
+                      {" / "}
+                      <span>{targetCalls} target</span>
+                    </>
+                  );
+                })()}
+              </div>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
       {/* Status */}
       <div className="flex-shrink-0 w-24 text-center">
-        <span className={`inline-flex items-center justify-center w-20 px-2 py-0.5 rounded-full text-xs font-medium ${status.color}`}>
+        <span className={`inline-flex items-center justify-center w-20 px-2 py-0.5 border border-primary-300 rounded-full text-xs font-medium ${status.color}`}>
           {status.label}
         </span>
       </div>
 
-      {/* Calls */}
+      {/* Cost - Based on performed calls */}
       <div className="flex-shrink-0 w-20 text-center">
-        <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary whitespace-nowrap">
-          {campaign.minCalls !== undefined && campaign.maxCalls !== undefined
-            ? `${campaign.minCalls}-${campaign.maxCalls}`
-            : campaign.estimatedCalls || 0}
+        <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-medium whitespace-nowrap">
+          {(() => {
+            const targetCalls = estimatedCalls || 0;
+            const performedCalls = Math.max(0, Math.min(campaign.completedCalls ?? 0, targetCalls));
+            return formatCurrency(performedCalls * avgCostPerCall);
+          })()}
         </span>
       </div>
 
@@ -485,9 +514,9 @@ function ProjectCard({
               className="flex-shrink-0 p-0.5 hover:bg-light-surface-hover dark:hover:bg-dark-surface-hover rounded"
             >
               {isExpanded ? (
-                <ChevronDown className="w-4 h-4 text-light-text-tertiary dark:text-dark-text-tertiary" />
+                <FolderOpen className="w-4 h-4 text-primary-500 dark:text-primary-400" />
               ) : (
-                <ChevronRight className="w-4 h-4 text-light-text-tertiary dark:text-dark-text-tertiary" />
+                <Folder className="w-4 h-4 text-light-text-tertiary dark:text-dark-text-tertiary" />
               )}
             </button>
 
@@ -504,29 +533,25 @@ function ProjectCard({
               </h3>
               
               {/* Second Line: Project Code and Summary */}
-              <div className="flex items-center gap-2 text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
+              <div className="flex items-center gap-2 text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5 min-w-0 overflow-x-auto">
                 {project.isRealProject && (
                   <>
-                    <span className="text-light-text-tertiary dark:text-dark-text-tertiary">
+                    <span className="text-light-text-tertiary dark:text-dark-text-tertiary whitespace-nowrap flex-shrink-0">
                       {project.projectCode}
                     </span>
-                    <span>•</span>
+                    <span className="flex-shrink-0">•</span>
                   </>
                 )}
-                <span>
+                <span className="whitespace-nowrap flex-shrink-0">
                   {project.campaigns.length} campaign{project.campaigns.length !== 1 ? 's' : ''}
                 </span>
-                <span>•</span>
-                <span>
-                  {project.totalCalls} calls
+                <span className="flex-shrink-0">•</span>
+                <span className="whitespace-nowrap flex-shrink-0">
+                  Target: {project.totalCalls} calls
                 </span>
-                <span>•</span>
-                <span className={`font-medium ${
-                  costPercentage > 90 ? 'text-red-600 dark:text-red-400' : 
-                  costPercentage > 75 ? 'text-orange-600 dark:text-orange-400' : 
-                  'text-green-600 dark:text-green-400'
-                }`}>
-                  {formatCurrency(project.totalSpent)} / {formatCurrency(project.totalBudget)}
+                <span className="flex-shrink-0">•</span>
+                <span className="font-medium text-light-text dark:text-dark-text whitespace-nowrap flex-shrink-0">
+                  Cost: {formatCurrency(project.totalSpent)}
                 </span>
               </div>
             </div>
@@ -855,7 +880,58 @@ function HomeContent() {
           try {
             const data = localStorage.getItem(key);
             if (data) {
-              allCampaigns.push(JSON.parse(data));
+              const parsed: Campaign = JSON.parse(data);
+              // Determine target calls from min/max or estimatedCalls
+              let target = 0;
+              if (typeof parsed.minCalls === 'number' && typeof parsed.maxCalls === 'number') {
+                target = Math.max(0, Math.round((parsed.minCalls + parsed.maxCalls) / 2));
+              } else if (typeof parsed.estimatedCalls === 'number') {
+                target = Math.max(0, parsed.estimatedCalls);
+              }
+
+              // If missing, generate mock calls progress consistent with status
+              if (parsed.completedCalls === undefined || parsed.scheduledCalls === undefined) {
+                const status = getCampaignStatus(parsed);
+                const rand = (max: number) => Math.floor(Math.random() * (Math.max(0, max) + 1));
+
+                if (target > 0) {
+                  if ((status.label || '').toLowerCase().startsWith('Waiting')) {
+                    parsed.completedCalls = 0;
+                    parsed.scheduledCalls = 0;
+                  } else if ((status.label || '') === 'Completed') {
+                    parsed.completedCalls = target;
+                    parsed.scheduledCalls = 0;
+                  } else {
+                    // Active: random realistic distribution capped below target
+                    const maxCompleted = Math.floor(target * 0.6);
+                    const completed = rand(maxCompleted);
+                    const remaining = Math.max(0, target - completed);
+                    const maxScheduled = Math.floor(remaining * 0.6);
+                    const scheduled = rand(maxScheduled);
+                    parsed.completedCalls = completed;
+                    parsed.scheduledCalls = scheduled;
+                  }
+                } else {
+                  parsed.completedCalls = parsed.completedCalls ?? 0;
+                  parsed.scheduledCalls = parsed.scheduledCalls ?? 0;
+                }
+
+                // Persist back so values are stable across reloads
+                try { localStorage.setItem(key, JSON.stringify(parsed)); } catch {}
+              }
+
+              // Safety clamp
+              if (target > 0 && typeof parsed.completedCalls === 'number' && typeof parsed.scheduledCalls === 'number') {
+                const cappedCompleted = Math.min(parsed.completedCalls, target);
+                const cappedScheduled = Math.min(parsed.scheduledCalls, Math.max(0, target - cappedCompleted));
+                if (cappedCompleted !== parsed.completedCalls || cappedScheduled !== parsed.scheduledCalls) {
+                  parsed.completedCalls = cappedCompleted;
+                  parsed.scheduledCalls = cappedScheduled;
+                  try { localStorage.setItem(key, JSON.stringify(parsed)); } catch {}
+                }
+              }
+
+              allCampaigns.push(parsed);
             }
           } catch (error) {
             console.error("Error parsing campaign data:", error);
@@ -1381,9 +1457,9 @@ function HomeContent() {
 
           {/* New Campaign Button*/}
           <div className="my-3">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex gap-2">
               <button
-                className="btn-primary flex items-center gap-2 py-1 w-[180px]"
+                className="btn-primary flex items-center gap-2 py-1 w-[170px]"
                 onClick={() => setIsNewProjectModalOpen(true)}
               >
                 <Plus className="w-4 h-4" />
@@ -1392,7 +1468,7 @@ function HomeContent() {
 
               <button
                 onClick={() => router.push("/campaign/new")}
-                className="btn-primary flex items-center gap-2 py-1 w-[180px]"
+                className="btn-primary flex items-center gap-2 py-1 w-[170px]"
               >
                 <Plus className="w-4 h-4" />
                 New Campaign
@@ -1408,59 +1484,58 @@ function HomeContent() {
                 <div className="flex-shrink-0 w-4"></div>
 
                 {/* Campaign Name */}
-                <div className="pl-2 flex-1 min-w-0">
+                <div className="pl-1 flex-1 min-w-0">
                   <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
-                    Campaign Name
                   </span>
                 </div>
 
                 {/* Industry */}
-                <div className="pl-2 flex-1 min-w-0 text-center">
-                  <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
+                <div className="pl-1 flex-1 min-w-0 ">
+                  <span className="ml-[4vw] text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
                     Industry
                   </span>
                 </div>
 
                 {/* Timeline */}
-                <div className="pl-2 flex-1 min-w-0">
+                <div className="pl-1 flex-1 min-w-0">
                   <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
                     Timeline
                   </span>
                 </div>
 
                 {/* Target Regions */}
-                <div className="pl-2 flex-1 min-w-0">
+                <div className="pl-1 flex-1 min-w-0">
                   <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
-                    Regions
+                    Target Regions
                   </span>
                 </div>
 
                 {/* Divider */}
-                <div className="flex-shrink-0 w-px h-6 bg-light-border dark:bg-dark-border mx-4"></div>
+                <div className="flex-shrink-0 w-px h-6 bg-light-border dark:bg-dark-border ml-4"></div>
 
-                {/* Budget */}
-                <div className="pl-2 flex-1 min-w-0">
+                {/* Calls Progress */}
+                <div className="pl-1 flex-1 min-w-0">
                   <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
-                    Budget
+                    Calls Progress
                   </span>
                 </div>
 
                 {/* Status */}
-                <div className="pl-2 flex-shrink-0 w-24">
+                <div className="pl-1 flex-shrink-0 w-24">
                   <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
                     Status
                   </span>
                 </div>
 
-                {/* Calls */}
-                <div className="pl-2 flex-shrink-0 w-20">
+                {/* Cost */}
+                <div className="pl-1 flex-shrink-0 w-20">
                   <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
-                    Calls
+                    Cost
                   </span>
                 </div>
 
                 {/* Team */}
-                <div className="pl-2 flex-shrink-0 w-20">
+                <div className="pl-1 flex-shrink-0 w-20">
                   <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
                     Team
                   </span>

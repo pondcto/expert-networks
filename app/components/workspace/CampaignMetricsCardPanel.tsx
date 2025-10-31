@@ -16,32 +16,32 @@ export default function CampaignMetricsCardPanel() {
             </div>
             
             {/* Experts under screening */}
-            <div className="bg-white col-span-1 flex justify-between items-center dark:bg-gray-800 rounded-lg p-2 border border-gray-200 dark:border-gray-700">
-                <div className="text-md text-gray-600 dark:text-gray-400">Experts under screening</div>
-                <div className="text-2xl font-semibold text-blue-600 dark:text-blue-400">5</div>
+            <div className="bg-white col-span-1 flex justify-between items-center gap-2 dark:bg-gray-800 rounded-lg p-2 border border-gray-200 dark:border-gray-700 min-w-0">
+                <div className="text-md text-gray-600 dark:text-gray-400 truncate min-w-0">Experts under screening</div>
+                <div className="text-2xl font-semibold text-blue-600 dark:text-blue-400 flex-shrink-0">5</div>
             </div>
             
             {/* Scheduling */}
-            <div className="bg-white col-span-1 flex justify-between items-center dark:bg-gray-800 rounded-lg p-2 border border-gray-200 dark:border-gray-700">
-                <div className="text-md text-gray-600 dark:text-gray-400">Scheduling</div>
-                <div className="text-2xl font-semibold text-blue-600 dark:text-blue-400">5</div>
+            <div className="bg-white col-span-1 flex justify-between items-center gap-2 dark:bg-gray-800 rounded-lg p-2 border border-gray-200 dark:border-gray-700 min-w-0">
+                <div className="text-md text-gray-600 dark:text-gray-400 truncate min-w-0">Scheduling</div>
+                <div className="text-2xl font-semibold text-blue-600 dark:text-blue-400 flex-shrink-0">5</div>
             </div>
             
             {/* Interviews scheduled */}
-            <div className="bg-white col-span-1 flex justify-between items-center dark:bg-gray-800 rounded-lg p-2 border border-gray-200 dark:border-gray-700">
-                <div className="text-md text-gray-600 dark:text-gray-400">Interviews scheduled</div>
-                <div className="text-2xl font-semibold text-blue-600 dark:text-blue-400">5</div>
+            <div className="bg-white col-span-1 flex justify-between items-center gap-2 dark:bg-gray-800 rounded-lg p-2 border border-gray-200 dark:border-gray-700 min-w-0">
+                <div className="text-md text-gray-600 dark:text-gray-400 truncate min-w-0">Interviews scheduled</div>
+                <div className="text-2xl font-semibold text-blue-600 dark:text-blue-400 flex-shrink-0">5</div>
             </div>
             
             {/* Interviews completed */}
-            <div className="bg-white col-span-1 flex justify-between items-center dark:bg-gray-800 rounded-lg p-2 border border-gray-200 dark:border-gray-700">
-                <div className="text-md text-gray-600 dark:text-gray-400">Interviews completed</div>
-                <div className="text-2xl font-semibold text-blue-600 dark:text-blue-400">15</div>
+            <div className="bg-white col-span-1 flex justify-between items-center gap-2 dark:bg-gray-800 rounded-lg p-2 border border-gray-200 dark:border-gray-700 min-w-0">
+                <div className="text-md text-gray-600 dark:text-gray-400 truncate min-w-0">Interviews completed</div>
+                <div className="text-2xl font-semibold text-blue-600 dark:text-blue-400 flex-shrink-0">15</div>
             </div>
             
             {/* Cost */}
-            <div className="bg-white col-span-2 flex justify-between items-center dark:bg-gray-800 rounded-lg p-2 border border-gray-200 dark:border-gray-700">
-                <div className="text-md text-gray-600 dark:text-gray-400">Cost</div>
+            <div className="bg-white col-span-2 flex justify-between items-center gap-2 dark:bg-gray-800 rounded-lg p-2 border border-gray-200 dark:border-gray-700 min-w-0">
+                <div className="text-md text-gray-600 dark:text-gray-400 truncate min-w-0">Estimated Cost</div>
                 <div className="flex items-center">
                     {/* Bar chart icon */}
                     <div className="flex justify-end h-4 gap-0.5">

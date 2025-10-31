@@ -19,6 +19,8 @@ export interface ScopeData {
   targetCompletionDate: string;
   minCalls: number;
   maxCalls: number;
+  // Optional details when "Other" is selected for regions
+  targetRegionsOther?: string;
 }
 
 const targetRegions = [
@@ -48,7 +50,8 @@ export default function ScopeRefinementPanel({
     startDate: "Any",
     targetCompletionDate: "Any",
     minCalls: 5,
-    maxCalls: 15
+    maxCalls: 15,
+    targetRegionsOther: ""
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const datePickerRef = useRef<HTMLDivElement>(null);
@@ -91,7 +94,8 @@ export default function ScopeRefinementPanel({
         startDate: campaignData.startDate || "Any",
         targetCompletionDate: campaignData.targetCompletionDate || "Any",
         minCalls,
-        maxCalls
+        maxCalls,
+        targetRegionsOther: (campaignData as any).targetRegionsOther || ""
       });
       
       // Update date range if campaign has dates
@@ -415,6 +419,22 @@ export default function ScopeRefinementPanel({
                   </label>
                 ))}
               </div>
+              {formData.targetRegions.includes('Other') && (
+                <div className="mt-2">
+                  <label className="block text-xs text-light-text-tertiary dark:text-dark-text-tertiary mb-1">
+                    Please specify countries/regions of interest
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.targetRegionsOther || ''}
+                    onChange={(e) => handleInputChange('targetRegionsOther', e.target.value)}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
+                    placeholder="e.g., Nordics (Sweden, Norway), GCC, Benelux, etc."
+                    className="w-full px-3 py-2 dark:bg-dark-background-secondary border border-light-border dark:border-dark-border rounded text-sm text-light-text dark:text-dark-text placeholder:text-light-text-tertiary dark:placeholder:text-dark-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+              )}
               {showHints.targetRegions && (
                 <div className="absolute top-full left-0 text-xs text-red-600 dark:text-red-400">
                   Please select at least one region
@@ -733,18 +753,16 @@ export default function ScopeRefinementPanel({
 
           {/* Number of calls range */}
           <div>
-            <label className="block font-medium text-light-text dark:text-dark-text mb-1">
+            <label className="block font-medium text-light-text dark:text-dark-text">
               Number of calls<span className="text-red-500">*</span>
             </label>
-            <div className={`space-y-3 p-3 border rounded ${
+            <div className={`p-3 ${
               showHints.calls ? 'border-red-500 bg-red-50/50 dark:bg-red-900/10' : 'border-light-border dark:border-dark-border'
             }`}>
-              {/* Min and Max Input Fields */}
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <label className="block text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">
-                    Minimum
-                  </label>
+              {/* Single-row layout: min input, slider, max input */}
+              <div className="flex items-center gap-3">
+                {/* Min Input */}
+                <div className="w-20">
                   <input
                     type="number"
                     min="1"
@@ -759,10 +777,60 @@ export default function ScopeRefinementPanel({
                     className="w-full px-2 py-1.5 dark:bg-dark-background-secondary border border-light-border dark:border-dark-border rounded text-light-text dark:text-dark-text focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
-                <div className="flex-1">
-                  <label className="block text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">
-                    Maximum
-                  </label>
+
+                {/* Slider */}
+                <div className="flex-1 relative py-2">
+                  {/* Track */}
+                  <div className="absolute top-1/2 -translate-y-1/2 w-full h-1.5 bg-light-background-secondary dark:bg-dark-background-secondary rounded-full" />
+
+                  {/* Active Range */}
+                  <div
+                    className="absolute top-1/2 -translate-y-1/2 h-1.5 bg-primary-500 rounded-full"
+                    style={{
+                      left: `${((formData.minCalls - 1) / 99) * 100}%`,
+                      right: `${100 - ((formData.maxCalls - 1) / 99) * 100}%`
+                    }}
+                  />
+
+                  {/* Min Thumb */}
+                  <input
+                    type="range"
+                    min="1"
+                    max="100"
+                    value={formData.minCalls}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
+                      if (value <= formData.maxCalls) {
+                        handleInputChange("minCalls", value);
+                      }
+                    }}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
+                    className="absolute w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary-500 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white dark:[&::-webkit-slider-thumb]:border-dark-background [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary-500 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white dark:[&::-moz-range-thumb]:border-dark-background [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:hover:scale-110 [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:pointer-events-auto"
+                    style={{ zIndex: 5, pointerEvents: 'none', top: 0 }}
+                  />
+
+                  {/* Max Thumb */}
+                  <input
+                    type="range"
+                    min="1"
+                    max="100"
+                    value={formData.maxCalls}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
+                      if (value >= formData.minCalls) {
+                        handleInputChange("maxCalls", value);
+                      }
+                    }}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
+                    className="absolute w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary-500 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white dark:[&::-webkit-slider-thumb]:border-dark-background [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary-500 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white dark:[&::-moz-range-thumb]:border-dark-background [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:hover:scale-110 [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:pointer-events-auto"
+                    style={{ zIndex: 4, pointerEvents: 'none', top: 0 }}
+                  />
+                </div>
+
+                {/* Max Input */}
+                <div className="w-20">
                   <input
                     type="number"
                     min={formData.minCalls}
@@ -778,76 +846,6 @@ export default function ScopeRefinementPanel({
                   />
                 </div>
               </div>
-
-              {/* Visual Range Slider */}
-              <div className="relative pt-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary">1</span>
-                  <div className="flex-1 relative">
-                    {/* Track */}
-                    <div className="absolute top-1/2 -translate-y-1/2 w-full h-1.5 bg-light-background-secondary dark:bg-dark-background-secondary rounded-full" />
-                    
-                    {/* Active Range */}
-                    <div 
-                      className="absolute top-1/2 -translate-y-1/2 h-1.5 bg-primary-500 rounded-full"
-                      style={{
-                        left: `${((formData.minCalls - 1) / 99) * 100}%`,
-                        right: `${100 - ((formData.maxCalls - 1) / 99) * 100}%`
-                      }}
-                    />
-                    
-                    {/* Min Thumb */}
-                    <input
-                      type="range"
-                      min="1"
-                      max="100"
-                      value={formData.minCalls}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value);
-                        if (value <= formData.maxCalls) {
-                          handleInputChange("minCalls", value);
-                        }
-                      }}
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                      className="absolute w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary-500 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white dark:[&::-webkit-slider-thumb]:border-dark-background [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary-500 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white dark:[&::-moz-range-thumb]:border-dark-background [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:hover:scale-110 [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:pointer-events-auto"
-                      style={{ 
-                        zIndex: 5,
-                        pointerEvents: 'none'
-                      }}
-                    />
-                    
-                    {/* Max Thumb */}
-                    <input
-                      type="range"
-                      min="1"
-                      max="100"
-                      value={formData.maxCalls}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value);
-                        if (value >= formData.minCalls) {
-                          handleInputChange("maxCalls", value);
-                        }
-                      }}
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                      className="absolute w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary-500 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white dark:[&::-webkit-slider-thumb]:border-dark-background [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary-500 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white dark:[&::-moz-range-thumb]:border-dark-background [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:hover:scale-110 [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:pointer-events-auto"
-                      style={{ 
-                        zIndex: 4,
-                        pointerEvents: 'none'
-                      }}
-                    />
-                  </div>
-                  <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary">100</span>
-                </div>
-              </div>
-              
-              {/* Range Display */}
-              <div className="text-center">
-                <span className="text-sm font-medium text-primary-500">
-                  {formData.minCalls} - {formData.maxCalls} calls
-                </span>
-              </div>
             </div>
             
             {showHints.calls && (
@@ -855,10 +853,6 @@ export default function ScopeRefinementPanel({
                 Please enter a valid range (min must be ≤ max)
               </div>
             )}
-            
-            <p className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary mt-1">
-              This helps us estimate your campaign budget
-            </p>
           </div>
         </form>
       </div>

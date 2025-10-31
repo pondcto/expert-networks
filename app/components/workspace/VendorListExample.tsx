@@ -31,9 +31,9 @@ export default function VendorListExample() {
               </div>
             </div>
             <p className="text-sm mt-2">{vendor.description}</p>
-            <div className="flex flex-wrap gap-1 mt-2">
+            <div className="flex gap-1 overflow-x-auto min-w-0 mt-2">
               {vendor.tags.map((tag, index) => (
-                <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded flex-shrink-0 whitespace-nowrap">
                   {tag}
                 </span>
               ))}

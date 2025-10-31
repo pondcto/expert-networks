@@ -17,6 +17,7 @@ import {
   isBefore
 } from "../../utils/dateUtils";
 import { Check, Users, X, Send } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 interface ExpertSchedulingPanelProps {
   selectedExpert?: ProposedExpert | null;
@@ -40,6 +41,9 @@ export default function ExpertSchedulingPanel({ selectedExpert }: ExpertScheduli
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]); // Format: "YYYY-MM-DD_HH:MM"
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [requiredMemberIds, setRequiredMemberIds] = useState<string[]>([]);
+  const [timeZone, setTimeZone] = useState<string>("UTC");
+  const [timeZones, setTimeZones] = useState<string[]>([]);
   const [showRequestModal, setShowRequestModal] = useState(false);
 
   const weekDays = generateWeekDays(currentWeek);
@@ -49,8 +53,39 @@ export default function ExpertSchedulingPanel({ selectedExpert }: ExpertScheduli
   useEffect(() => {
     if (campaignData?.teamMembers) {
       setTeamMembers(campaignData.teamMembers as TeamMember[]);
+      // Load required members from localStorage (per campaign)
+      const cid = (campaignData as any)?.id;
+      const saved = cid ? localStorage.getItem(`required_members_${cid}`) : null;
+      if (saved) {
+        try { setRequiredMemberIds(JSON.parse(saved)); } catch {}
+      } else {
+        setRequiredMemberIds([]); // all optional by default
+      }
+      // Load saved timezone or default to system
+      const savedTz = cid ? localStorage.getItem(`timezone_${cid}`) : null;
+      const systemTz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+      setTimeZone(savedTz || systemTz);
     }
   }, [campaignData]);
+
+  // Populate all available time zones (IANA)
+  useEffect(() => {
+    try {
+      // @ts-ignore: supportedValuesOf may not exist in older TS lib declarations
+      const zones: string[] = typeof (Intl as any).supportedValuesOf === 'function'
+        ? (Intl as any).supportedValuesOf('timeZone')
+        : [
+            'UTC','Etc/GMT+12','Pacific/Midway','Pacific/Honolulu','America/Anchorage','America/Los_Angeles',
+            'America/Denver','America/Chicago','America/New_York','America/Sao_Paulo','Atlantic/Azores',
+            'Europe/London','Europe/Paris','Europe/Berlin','Europe/Athens','Africa/Cairo','Europe/Moscow',
+            'Asia/Dubai','Asia/Karachi','Asia/Kolkata','Asia/Dhaka','Asia/Bangkok','Asia/Shanghai',
+            'Asia/Tokyo','Australia/Sydney','Pacific/Auckland'
+          ];
+      setTimeZones(zones.slice().sort((a,b) => a.localeCompare(b)));
+    } catch {
+      setTimeZones(['UTC']);
+    }
+  }, []);
 
   // Reset state when expert changes
   useEffect(() => {
@@ -89,7 +124,8 @@ export default function ExpertSchedulingPanel({ selectedExpert }: ExpertScheduli
 
   // Mock team availability (in a real app, this would come from team calendars)
   const getTeamAvailability = (date: Date, timeSlot: string): boolean => {
-    if (teamMembers.length === 0) return true; // If no team members, all slots are available
+    const required = teamMembers.filter(m => requiredMemberIds.includes(m.id));
+    if (required.length === 0) return true; // If no required attendees, treat as unconstrained
     
     // For demo: team is available on weekdays 10am-4pm
     const dayOfWeek = date.getDay();
@@ -182,14 +218,20 @@ export default function ExpertSchedulingPanel({ selectedExpert }: ExpertScheduli
   return (
     <div className="card h-full w-full flex flex-col overflow-hidden pb-0 px-3 pt-3">
       <div className="flex items-center justify-between mb-3">
-        <div className="flex-1">
-          <h3 className="text-title font-semibold text-light-text dark:text-dark-text mb-1">
-            Expert Availability / Scheduling
-          </h3>
-          {/* <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-            Select preferred time slots where both expert and team are available
-          </p> */}
-        </div>
+        <h3 className="text-title font-semibold text-light-text dark:text-dark-text mb-1">
+          Expert Availability / Scheduling
+        </h3>
+        <button
+          onClick={handleRequestTimeSlots}
+          disabled={selectedSlots.length === 0}
+          className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${
+            selectedSlots.length === 0
+              ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+              : 'bg-primary-500 hover:bg-primary-600 text-white'
+          }`}
+        >
+          Request Time Slots
+        </button>
       </div>
 
       {/* Expert and Team Info */}
@@ -204,35 +246,7 @@ export default function ExpertSchedulingPanel({ selectedExpert }: ExpertScheduli
               <span className="text-sm font-semibold text-light-text dark:text-dark-text">{selectedExpert.name}</span>
               <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{selectedExpert.title}</span>
             </div>
-          </div>
-
-          {/* Divider */}
-          {teamMembers.length > 0 && (
-            <>
-              <div className="w-px h-10 bg-light-border dark:bg-dark-border"></div>
-
-              {/* Team Members */}
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary">Team Members:</span>
-                <div className="flex -space-x-2">
-                  {teamMembers.slice(0, 5).map((member) => (
-                    <img
-                      key={member.id}
-                      src={member.avatar}
-                      alt={member.name}
-                      className="w-6 h-6 rounded-full border-2 border-light-background dark:border-dark-background object-cover"
-                      title={member.name}
-                    />
-                  ))}
-                  {teamMembers.length > 5 && (
-                    <div className="w-6 h-6 rounded-full border-2 border-light-background dark:border-dark-background bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                      <span className="text-xs font-medium text-gray-600 dark:text-gray-300">+{teamMembers.length - 5}</span>
-                    </div>
-                  )}
-              </div>
-              </div>
-            </>
-          )}
+          </div>          
         </div>
 
         <div className="flex items-center gap-2">
@@ -252,6 +266,99 @@ export default function ExpertSchedulingPanel({ selectedExpert }: ExpertScheduli
             Next Week →
           </button>
         </div>
+      </div>
+
+      <div className="flex items-center mb-3">
+        {/* Divider */}
+        {teamMembers.length > 0 && (
+          <>
+            <div className="mb-3 w-1/2">
+              <div className="p-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded">
+                <div className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-2">Team Members</div>
+                <div className="flex items-center min-h-[40px]">
+                  {/* Team Members */}
+                  <div className="flex flex-col gap-1">
+                    <div className="flex -space-x-2">
+                      {teamMembers.map((member) => {
+                        const isRequired = requiredMemberIds.includes(member.id);
+                        return (
+                          <Tooltip key={member.id}>
+                            <TooltipTrigger asChild>
+                              <img
+                                src={member.avatar}
+                                alt={member.name}
+                                onClick={() => {
+                                  const cid = (campaignData as any)?.id;
+                                  if (isRequired) {
+                                    // Remove from required
+                                    const next = requiredMemberIds.filter(x => x !== member.id);
+                                    setRequiredMemberIds(next);
+                                    if (cid) localStorage.setItem(`required_members_${cid}`, JSON.stringify(next));
+                                  } else {
+                                    // Add to required
+                                    const next = [...requiredMemberIds, member.id];
+                                    setRequiredMemberIds(next);
+                                    if (cid) localStorage.setItem(`required_members_${cid}`, JSON.stringify(next));
+                                  }
+                                }}
+                                className={`w-8 h-8 rounded-full border-2 object-cover transition-all cursor-pointer ${
+                                  isRequired
+                                    ? 'border-primary-400 dark:border-primary-600 opacity-50'
+                                    : 'border-light-background dark:border-dark-background hover:border-primary-300 dark:hover:border-primary-700 hover:scale-110'
+                                }`}
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="bg-gray-900 dark:bg-gray-800 text-white border border-gray-700">
+                              <p className="text-sm">{member.name}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+        {/* Required Attendees */}
+        {teamMembers.length > 0 && (
+          <div className="mb-3 w-1/2">
+            <div className="p-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded">
+              <div className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-2">Required attendees</div>
+              <div className="flex items-center min-h-[40px]">
+                {requiredMemberIds.length === 0 ? (
+                  <div className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary italic">
+                  </div>
+                ) : (
+                  <div className="flex -space-x-2">
+                    {teamMembers.filter(m => requiredMemberIds.includes(m.id)).map(m => (
+                      <Tooltip key={m.id}>
+                        <TooltipTrigger asChild>
+                          <img
+                            src={m.avatar}
+                            alt={m.name}
+                            onClick={() => {
+                              // Remove from required
+                              const next = requiredMemberIds.filter(x => x !== m.id);
+                              setRequiredMemberIds(next);
+                              const cid = (campaignData as any)?.id;
+                              if (cid) localStorage.setItem(`required_members_${cid}`, JSON.stringify(next));
+                            }}
+                            className="w-8 h-8 rounded-full border-2 border-primary-400 dark:border-primary-600 object-cover cursor-pointer hover:border-primary-500 dark:hover:border-primary-500 hover:scale-110 transition-all"
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="bg-gray-900 dark:bg-gray-800 text-white border border-gray-700">
+                          <p className="text-sm">{m.name}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Legend */}
@@ -279,9 +386,20 @@ export default function ExpertSchedulingPanel({ selectedExpert }: ExpertScheduli
         <div className="grid grid-cols-8 gap-0 border border-light-border dark:border-dark-border rounded-lg">
           {/* Time column header */}
           <div className="sticky top-0 p-2 text-body-md font-medium text-light-text-secondary dark:text-dark-text-secondary border-r border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface z-20">
-            <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-              GMT - 05
-            </div>
+            <select
+              value={timeZone}
+              onChange={(e) => {
+                const tz = e.target.value;
+                setTimeZone(tz);
+                const cid = (campaignData as any)?.id;
+                if (cid) localStorage.setItem(`timezone_${cid}`, tz);
+              }}
+              className="w-full px-2 py-1 text-xs border border-light-border dark:border-dark-border rounded bg-white dark:bg-dark-background text-light-text dark:text-dark-text focus:outline-none focus:ring-1 focus:ring-primary-500"
+            >
+              {timeZones.map(tz => (
+                <option key={tz} value={tz}>{tz}</option>
+              ))}
+            </select>
           </div>
           
           {/* Day headers */}
@@ -368,30 +486,6 @@ export default function ExpertSchedulingPanel({ selectedExpert }: ExpertScheduli
         </div>
       </div>
 
-      {/* Action Bar */}
-      <div className="flex items-center justify-between mt-3 p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-            Selected Time Slots:
-          </span>
-          <span className="text-sm font-semibold text-primary-600 dark:text-primary-400">
-            {selectedSlots.length}
-          </span>
-        </div>
-        
-        <button
-          onClick={handleRequestTimeSlots}
-          disabled={selectedSlots.length === 0}
-          className={`px-6 py-2 rounded-md font-medium text-sm transition-colors ${
-            selectedSlots.length === 0
-              ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-              : 'bg-primary-500 hover:bg-primary-600 text-white'
-          }`}
-        >
-          Request Time Slots
-        </button>
-      </div>
-
       {/* Request Confirmation Modal */}
       {showRequestModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -438,29 +532,47 @@ export default function ExpertSchedulingPanel({ selectedExpert }: ExpertScheduli
                 <div className="col-span-1 p-2 bg-light-background dark:bg-dark-background rounded-lg border border-light-border dark:border-dark-border">
                   <div className="flex items-center gap-3">
                     <div className="flex -space-x-2 flex-shrink-0">
-                      {teamMembers.slice(0, 3).map((member) => (
-                        <img
-                          key={member.id}
-                          src={member.avatar}
-                          alt={member.name}
-                          className="w-10 h-10 rounded-full border-2 border-light-surface dark:border-dark-surface object-cover"
-                          title={member.name}
-                        />
-                      ))}
-                      {teamMembers.length > 3 && (
-                        <div className="w-10 h-10 rounded-full border-2 border-light-surface dark:border-dark-surface bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                          <span className="text-xs font-semibold text-primary-600 dark:text-primary-400">+{teamMembers.length - 3}</span>
-                        </div>
-                      )}
+                      {(() => {
+                        const requiredMembers = teamMembers.filter(m => requiredMemberIds.includes(m.id));
+                        const displayMembers = requiredMemberIds.length > 0 ? requiredMembers : teamMembers;
+                        return (
+                          <>
+                            {displayMembers.slice(0, 3).map((member) => (
+                              <img
+                                key={member.id}
+                                src={member.avatar}
+                                alt={member.name}
+                                className="w-10 h-10 rounded-full border-2 border-light-surface dark:border-dark-surface object-cover"
+                                title={member.name}
+                              />
+                            ))}
+                            {displayMembers.length > 3 && (
+                              <div className="w-10 h-10 rounded-full border-2 border-light-surface dark:border-dark-surface bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                                <span className="text-xs font-semibold text-primary-600 dark:text-primary-400">+{displayMembers.length - 3}</span>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary font-medium mb-0.5">TEAM MEMBERS</p>
                       <p className="font-semibold text-sm text-light-text dark:text-dark-text">
-                        {teamMembers.length} {teamMembers.length === 1 ? 'member' : 'members'}
+                        {(() => {
+                          const requiredCount = requiredMemberIds.length;
+                          const totalCount = teamMembers.length;
+                          if (requiredCount > 0) {
+                            return `${requiredCount} required${requiredCount < totalCount ? ` / ${totalCount} total` : ''}`;
+                          }
+                          return `${totalCount} ${totalCount === 1 ? 'member' : 'members'}`;
+                        })()}
                       </p>
                       <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate">
-                        {teamMembers.slice(0, 2).map(m => m.name).join(', ')}
-                        {teamMembers.length > 2 && '...'}
+                        {(() => {
+                          const requiredMembers = teamMembers.filter(m => requiredMemberIds.includes(m.id));
+                          const displayMembers = requiredMemberIds.length > 0 ? requiredMembers : teamMembers;
+                          return displayMembers.slice(0, 2).map(m => m.name).join(', ') + (displayMembers.length > 2 ? '...' : '');
+                        })()}
                       </p>
                     </div>
                   </div>
@@ -478,16 +590,16 @@ export default function ExpertSchedulingPanel({ selectedExpert }: ExpertScheduli
                   </span>
                 </div>
                 <div className="max-h-32 overflow-y-auto p-3 bg-light-background dark:bg-dark-background rounded-lg border border-light-border dark:border-dark-border">
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex gap-2 overflow-x-auto min-w-0">
                     {getFormattedSlots().map((slot, index) => (
                       <div
                         key={index}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 border border-purple-300 dark:border-purple-700 rounded-md"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 border border-purple-300 dark:border-purple-700 rounded-md flex-shrink-0"
                       >
-                        <span className="text-xs font-medium text-purple-700 dark:text-purple-300">
+                        <span className="text-xs font-medium text-purple-700 dark:text-purple-300 whitespace-nowrap">
                           {slot.date}
                         </span>
-                        <span className="text-xs text-purple-600 dark:text-purple-400">
+                        <span className="text-xs text-purple-600 dark:text-purple-400 whitespace-nowrap">
                           {slot.time}
                         </span>
                       </div>
@@ -496,25 +608,25 @@ export default function ExpertSchedulingPanel({ selectedExpert }: ExpertScheduli
                 </div>
               </div>
 
-              {/* Team Members - Compact View */}
-              {teamMembers.length > 0 && (
+              {/* Team Members - Compact View (Only Required Members) */}
+              {teamMembers.length > 0 && requiredMemberIds.length > 0 && (
                 <div className="mb-4">
                   <h4 className="text-xs font-semibold text-light-text-tertiary dark:text-dark-text-tertiary uppercase tracking-wide mb-2">
                     Invitations Will Be Sent To
                   </h4>
                   <div className="p-3 bg-light-background dark:bg-dark-background rounded-lg border border-light-border dark:border-dark-border">
-                    <div className="flex flex-wrap gap-2">
-                      {teamMembers.map((member) => (
+                    <div className="flex gap-2 overflow-x-auto min-w-0">
+                      {teamMembers.filter(member => requiredMemberIds.includes(member.id)).map((member) => (
                         <div
                           key={member.id}
-                          className="inline-flex items-center gap-2 px-2 py-1 bg-light-surface dark:bg-dark-surface rounded border border-light-border dark:border-dark-border"
+                          className="inline-flex items-center gap-2 px-2 py-1 bg-light-surface dark:bg-dark-surface rounded border border-light-border dark:border-dark-border flex-shrink-0"
                         >
                           <img
                             src={member.avatar}
                             alt={member.name}
-                            className="w-6 h-6 rounded-full object-cover"
+                            className="w-6 h-6 rounded-full object-cover flex-shrink-0"
                           />
-                          <span className="text-xs font-medium text-light-text dark:text-dark-text">
+                          <span className="text-xs font-medium text-light-text dark:text-dark-text whitespace-nowrap">
                             {member.name}
                           </span>
                         </div>
@@ -528,7 +640,7 @@ export default function ExpertSchedulingPanel({ selectedExpert }: ExpertScheduli
               <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                 <p className="text-xs text-blue-900 dark:text-blue-200">
                   <Users className="w-3.5 h-3.5 inline mr-1.5" />
-                  The expert network will coordinate with <strong>{selectedExpert.name}</strong> and send calendar invites to all team members once a time slot is confirmed.
+                  The expert network will coordinate with <strong>{selectedExpert.name}</strong> and send calendar invites to {requiredMemberIds.length > 0 ? 'required team members' : 'all team members'} once a time slot is confirmed.
                 </p>
               </div>
             </div>

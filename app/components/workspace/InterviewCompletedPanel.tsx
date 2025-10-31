@@ -201,11 +201,11 @@ export default function InterviewCompletedPanel() {
                                                 className="w-full h-full object-cover"
                                             />
                                         </div>
-                                        <div className="min-w-0">
-                                            <div className="font-medium text-light-text dark:text-dark-text">
+                                        <div className="min-w-0 flex-1">
+                                            <div className="font-medium text-light-text dark:text-dark-text truncate">
                                                 {interview.expertName}
                                             </div>
-                                            <div className="text-sm text-light-text-tertiary dark:text-dark-text-tertiary">
+                                            <div className="text-sm text-light-text-tertiary dark:text-dark-text-tertiary truncate">
                                                 {interview.expertTitle}
                                             </div>
                                         </div>
@@ -265,7 +265,7 @@ export default function InterviewCompletedPanel() {
 
                                 {/* Actions Column */}
                                 <td className="p-1">
-                                    <button className="flex items-center gap-1 px-3 py-1.5 text-sm bg-light-500 dark:bg-light-800 text-light-text dark:text-dark-text rounded-md border border-primary-500 dark:border-primary-700 hover:bg-primary-500 hover:text-white dark:hover:bg-primary-700 transition-colors">
+                                    <button className="flex items-center gap-1 px-3 py-1.5 text-sm bg-light-500 dark:bg-light-800 text-light-text dark:text-dark-text rounded-md border border-light-border dark:border-dark-border hover:bg-primary-500 hover:text-white dark:hover:bg-primary-700 transition-colors">
                                         <span>View details</span>
                                         <ChevronRight className="w-4 h-4" />
                                     </button>

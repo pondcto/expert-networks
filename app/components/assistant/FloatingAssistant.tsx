@@ -752,13 +752,13 @@ export function FloatingAssistant() {
         </div>
 
         {ctas.length > 0 && (
-          <div className="flex flex-wrap gap-2 pt-1">
+          <div className="flex gap-2 overflow-x-auto min-w-0 pt-1">
             {ctas.map(cta => (
               <button
                 key={cta.id}
                 type="button"
                 onClick={() => handleCtaClick(cta)}
-                className="rounded-full border border-primary-200 bg-light-surface px-3 py-1 text-xs font-semibold text-primary-600 transition hover:border-primary-300 hover:bg-primary-50 dark:border-primary-500/40 dark:bg-dark-surface dark:text-primary-200 dark:hover:border-primary-400 dark:hover:bg-primary-500/10"
+                className="rounded-full border border-primary-200 bg-light-surface px-3 py-1 text-xs font-semibold text-primary-600 transition hover:border-primary-300 hover:bg-primary-50 dark:border-primary-500/40 dark:bg-dark-surface dark:text-primary-200 dark:hover:border-primary-400 dark:hover:bg-primary-500/10 flex-shrink-0 whitespace-nowrap"
               >
                 {cta.label}
               </button>

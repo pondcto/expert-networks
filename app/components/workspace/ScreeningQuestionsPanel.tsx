@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2 } from "lucide-react";
+import { Plus, Edit2, Trash2, Circle, Dot } from "lucide-react";
 import { useCampaign } from "../../lib/campaign-context";
 
 export interface ScreeningQuestion {
@@ -20,11 +20,21 @@ export interface ScreeningQuestionsPanelProps {
 const mockQuestions: ScreeningQuestion[] = [
   {
     id: "1",
-    text: "What is your experience with pharmaceutical market research?",
+    text: "Describe your experience running expert interviews in life sciences (therapeutic areas, geographies, seniority).",
+    subQuestions: [
+      { id: "1-1", text: "Therapeutic areas covered (e.g., oncology, rare disease, cardiology)" },
+      { id: "1-2", text: "Typical respondent profiles (e.g., KOLs, payors, procurement, ex-operators)" },
+      { id: "1-3", text: "Regions you’ve sourced in (US/EU/APAC/MEA) and language coverage" },
+    ],
   },
   {
     id: "2",
-    text: "How do you approach competitive intelligence in healthcare?",
+    text: "Sourcing speed and quality control – how do you balance speed vs. vetting?",
+    subQuestions: [
+      { id: "2-1", text: "Average time to first slate and to full fill for 10+ calls" },
+      { id: "2-2", text: "Vetting process and conflict/compliance checks" },
+      { id: "2-3", text: "No-show mitigation and rescheduling SLAs" },
+    ],
   },
   {
     id: "3",
@@ -336,15 +346,40 @@ export default function ScreeningQuestionsPanel({
       </div>
 
       <div className="flex-1 min-h-0 overflow-auto px-1 p-1">
+        {/* Add Question Input */}
+        <div className="flex justify-between gap-2 mb-2">
+          <input
+            type="text"
+            value={newQuestionText}
+            onChange={(e) => setNewQuestionText(e.target.value)}
+            placeholder="Enter your question..."
+            className="w-full px-2 py-1 text-body  dark:bg-dark-background-secondary border border-light-border dark:border-dark-border rounded-md text-light-text dark:text-dark-text placeholder-light-text-tertiary dark:placeholder-dark-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            onKeyPress={(e) => {
+              if (e.key === "Enter") {
+                handleAddQuestion();
+              }
+            }}
+          />
+          
+          {/* Add another question button */}
+          <button
+            onClick={handleAddQuestion}
+            disabled={!newQuestionText.trim()}
+            className="flex items-center gap-2 px-3 py-2 border border-light-border dark:border-dark-border bg-primary-500 hover:bg-primary-600 text-white text-xs rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
         <div className="space-y-3">
           {/* Existing Questions */}
           {currentQuestions.map((question) => (
-            <div key={question.id} className="space-y-2">
-              <div 
-                className="group relative"
-                onMouseEnter={() => setHoveredQuestionId(question.id)}
-                onMouseLeave={() => setHoveredQuestionId(null)}
-              >
+            <div 
+              key={question.id} 
+              className="group relative space-y-2"
+              onMouseEnter={() => setHoveredQuestionId(question.id)}
+              onMouseLeave={() => setHoveredQuestionId(null)}
+            >
+              <div>
                 {editingQuestionId === question.id ? (
                   // Edit mode
                   <div className="p-1 dark:bg-dark-background-secondary rounded-md dark:border-dark-border">
@@ -379,12 +414,15 @@ export default function ScreeningQuestionsPanel({
                   </div>
                 ) : (
                   // Display mode
-                  <div className="p-1 rounded-md dark:border-dark-border">
-                    <p className="text-body-md text-light-text dark:text-dark-text">
-                      {question.text}
-                    </p>
-                    {/* Hover buttons */}
-                    <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-1">
+                  <div className="p-1 rounded-md dark:border-dark-border group/parent relative">
+                    <div className="flex items-start gap-2">
+                      <Circle className="w-3.5 h-3.5 mt-1 text-primary-500 flex-shrink-0" />
+                      <p className="text-body-md text-light-text dark:text-dark-text">
+                        {question.text}
+                      </p>
+                    </div>
+                    {/* Hover buttons - only when hovering parent question area */}
+                    <div className="absolute top-1 right-1 opacity-0 group-hover/parent:opacity-100 transition-opacity duration-200 flex gap-1">
                       <button
                         onClick={() => handleEditQuestion(question.id)}
                         className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors"
@@ -401,25 +439,16 @@ export default function ScreeningQuestionsPanel({
                       </button>
                     </div>
                     
-                    {/* Add Sub-Question Button - appears on hover */}
-                    {hoveredQuestionId === question.id && addingSubQuestionTo !== question.id && (
-                      <button
-                        onClick={() => setAddingSubQuestionTo(question.id)}
-                        className="mt-2 flex items-center gap-1 px-2 py-1 text-xs text-primary-500 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded transition-colors"
-                      >
-                        <Plus className="w-3 h-3" />
-                        Add Sub-Question
-                      </button>
-                    )}
+                    {/* Add Sub-Question Button moved below sub-questions for top-to-bottom flow */}
                   </div>
                 )}
               </div>
 
               {/* Sub-Questions */}
               {question.subQuestions && question.subQuestions.length > 0 && (
-                <div className="ml-6 space-y-2 border-l-2 border-light-border dark:border-dark-border pl-3">
+                <div className="ml-4 border-l-2 border-light-border dark:border-dark-border pl-3">
                   {question.subQuestions.map((subQuestion) => (
-                    <div key={subQuestion.id} className="group relative">
+                    <div key={subQuestion.id} className="group/subq relative">
                       {editingQuestionId === subQuestion.id ? (
                         // Edit mode for sub-question
                         <div className="p-1 rounded-md">
@@ -461,11 +490,14 @@ export default function ScreeningQuestionsPanel({
                       ) : (
                         // Display mode for sub-question
                         <div className="p-1 rounded-md relative">
-                          <p className="text-body-sm text-light-text-secondary dark:text-dark-text-secondary">
-                            {subQuestion.text}
-                          </p>
-                          {/* Hover buttons for sub-questions */}
-                          <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-1">
+                          <div className="flex items-start gap-2">
+                            <Dot className="w-4 h-4 mt-0.5 text-primary-400 flex-shrink-0" />
+                            <p className="text-body-sm text-light-text-secondary dark:text-dark-text-secondary">
+                              {subQuestion.text}
+                            </p>
+                          </div>
+                          {/* Hover buttons for sub-questions - only when hovering sub-question line */}
+                          <div className="absolute top-1 right-1 opacity-0 group-hover/subq:opacity-100 transition-opacity duration-200 flex gap-1">
                             <button
                               onClick={() => handleEditSubQuestionStart(question.id, subQuestion.id)}
                               className="p-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors"
@@ -485,6 +517,19 @@ export default function ScreeningQuestionsPanel({
                       )}
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* Add Sub-Question Button placed below the list (visible on hover across the whole block) */}
+              {hoveredQuestionId === question.id && addingSubQuestionTo !== question.id && (
+                <div className="ml-6 pl-3 mt-1">
+                  <button
+                    onClick={() => setAddingSubQuestionTo(question.id)}
+                    className="flex items-center gap-1 px-2 py-1 text-xs text-primary-500 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded transition-colors"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Add Sub-Question
+                  </button>
                 </div>
               )}
 
@@ -532,31 +577,6 @@ export default function ScreeningQuestionsPanel({
             </div>
           ))}
 
-          {/* Add Question Input */}
-          <div className="space-y-2">
-            <input
-              type="text"
-              value={newQuestionText}
-              onChange={(e) => setNewQuestionText(e.target.value)}
-              placeholder="Enter your question..."
-              className="w-full px-2 py-1 text-body  dark:bg-dark-background-secondary border border-light-border dark:border-dark-border rounded-md text-light-text dark:text-dark-text placeholder-light-text-tertiary dark:placeholder-dark-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              onKeyPress={(e) => {
-                if (e.key === "Enter") {
-                  handleAddQuestion();
-                }
-              }}
-            />
-            
-            {/* Add another question button */}
-            <button
-              onClick={handleAddQuestion}
-              disabled={!newQuestionText.trim()}
-              className="flex items-center gap-2 px-2 py-1 border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface text-body text-light-text dark:text-dark-text rounded-md hover: dark:hover:bg-dark-background-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Plus className="w-4 h-4" />
-              Add question
-            </button>
-          </div>
         </div>
       </div>
     </div>

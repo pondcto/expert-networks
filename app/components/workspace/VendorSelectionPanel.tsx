@@ -91,9 +91,40 @@ export default function VendorSelectionPanel({
     }
   };
 
-  const getStatusTextSize = (status: string) => {
+  const getStatusPaddingSize = (status: string) => {
     // Make "Not enrolled" text smaller to fit better in the pill
-    return status === "Not enrolled" ? "text-[10px]" : "text-xs";
+    return status === "Not enrolled" ? "px-1" : "px-3";
+  };
+
+  // Infer regions focus based on location and tags
+  const getRegionsForVendor = (vendor: VendorPlatform): string[] => {
+    const regions = new Set<string>();
+    const loc = (vendor.location || "").toLowerCase();
+    const tags = vendor.tags?.map(t => t.toLowerCase()) || [];
+    if (tags.includes("global coverage") || tags.includes("global project execution")) regions.add("Global");
+    if (loc.includes("usa") || loc.includes("new york") || loc.includes("chicago") || loc.includes("boston") || loc.includes("san francisco")) regions.add("North America");
+    if (loc.includes("london") || loc.includes("uk") || loc.includes("greece") || loc.includes("europe")) regions.add("Europe");
+    if (tags.some(t => t.includes("apac") || t.includes("asia"))) regions.add("APAC");
+    if (tags.some(t => t.includes("latam") || t.includes("latin"))) regions.add("LATAM");
+    if (tags.some(t => t.includes("middle east") || t.includes("mea"))) regions.add("Middle East & Africa");
+    return Array.from(regions.size > 0 ? regions : new Set(["Global"]))
+      .slice(0, 4);
+  };
+
+  // Infer industries based on description and tags
+  const getIndustriesForVendor = (vendor: VendorPlatform): string[] => {
+    const industries = new Set<string>();
+    const desc = (vendor.description || "").toLowerCase();
+    const tags = vendor.tags?.map(t => t.toLowerCase()) || [];
+    const addIf = (cond: boolean, label: string) => { if (cond) industries.add(label); };
+    addIf(desc.includes("life sciences") || desc.includes("healthcare") || tags.some(t => t.includes("life sciences") || t.includes("health")), "Healthcare");
+    addIf(desc.includes("technology") || desc.includes("platform") || desc.includes("ai") || tags.some(t => t.includes("technology") || t.includes("ai")), "Technology");
+    addIf(desc.includes("investment") || desc.includes("hedge") || desc.includes("equity") || desc.includes("financial") || tags.some(t => t.includes("investment") || t.includes("financial")), "Financial Services");
+    addIf(desc.includes("consumer") || desc.includes("retail") || tags.some(t => t.includes("consumer") || t.includes("retail")), "Consumer & Retail");
+    addIf(desc.includes("industrial") || desc.includes("manufacturing") || tags.some(t => t.includes("industrial") || t.includes("manufacturing")), "Industrial & Manufacturing");
+    addIf(desc.includes("consulting") || tags.some(t => t.includes("consulting") || t.includes("research")), "Professional Services");
+    const out = Array.from(industries);
+    return out.length > 0 ? out.slice(0, 5) : ["Technology", "Healthcare", "Financial Services"];
   };
 
   const handleSort = (column: 'rank' | 'overallScore' | 'avgCostPerCall' | 'status') => {
@@ -222,32 +253,30 @@ export default function VendorSelectionPanel({
             >
               {/* Rank */}
               <div className="col-span-1 flex items-center gap-2">
-                <div className="flex flex-col gap-1">
-                  <span className="text-body-sm font-medium text-light-text dark:text-dark-text">
-                    #{vendor.rank}
-                  </span>
-                  {vendor.rank <= 5 && (
-                  <span className="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                <span className="text-body-sm font-medium text-light-text dark:text-dark-text mr-1">
+                  {vendor.rank}#
+                </span>
+                {vendor.rank <= 5 && (
+                  <span className="inline-flex items-center px-2 py-0.5 bg-green-100 text-green-800 text-[10px] rounded-full whitespace-nowrap">
                     Top 5
                   </span>
-                  )}
-                </div>
+                )}
               </div>
 
               {/* Vendor */}
-              <div className="col-span-2 flex items-center gap-6">
-                <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center">
+              <div className="col-span-2 flex items-center gap-6 min-w-0">
+                <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center flex-shrink-0">
                   <span className="text-body-sm font-medium text-gray-700 dark:text-gray-300">
                     <Image src={vendor.logo} alt={vendor.name} width={40} height={40} className="w-10 h-10 rounded object-cover" />
                   </span>
                 </div>
-                <div>
-                  <div className="text-body-sm font-medium text-light-text dark:text-dark-text">
+                <div className="min-w-0 flex-1">
+                  <div className="text-body-sm font-medium text-light-text dark:text-dark-text truncate">
                     {vendor.name}
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                    <MapPin className="w-3 h-3" />
-                    {vendor.location}
+                  <div className="flex items-center gap-1 text-xs text-light-text-secondary dark:text-dark-text-secondary min-w-0">
+                    <MapPin className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate">{vendor.location}</span>
                   </div>
                 </div>
               </div>
@@ -269,24 +298,24 @@ export default function VendorSelectionPanel({
 
               {/* Status */}
               <div className="col-span-1 flex items-center gap-1">
-                <span className={`inline-flex items-center justify-center w-28 px-3 py-1 ${getStatusTextSize(getVendorStatus(vendor))} font-medium rounded-full whitespace-nowrap ${getStatusPillStyle(getVendorStatus(vendor))}`}>
+                <span className={`inline-flex items-center justify-center w-28 py-1 text-xs ${getStatusPaddingSize(getVendorStatus(vendor))} font-medium rounded-full whitespace-nowrap ${getStatusPillStyle(getVendorStatus(vendor))}`}>
                   {getVendorStatus(vendor)}
                 </span>
               </div>
 
               {/* Description */}
-              <div className="col-span-4">
-                <p className="text-body-sm text-light-text dark:text-dark-text mb-2 line-clamp-2">
+              <div className="col-span-4 min-w-0">
+                <p className="text-body-sm text-light-text dark:text-dark-text mb-2 line-clamp-2 min-w-0">
                   {vendor.description}
                 </p>
-                <div className="flex gap-1 flex-wrap">
+                <div className="flex gap-1 min-w-0">
                   {vendor.tags.slice(0, 2).map((tag, index) => (
-                    <span key={index} className="inline-block px-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-xs rounded-full">
+                    <span key={index} className="inline-block px-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-xs rounded-full flex-shrink-0 whitespace-nowrap">
                       {tag}
                     </span>
                   ))}
                   {vendor.tags.length > 2 && (
-                    <span className="inline-block px-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-xs rounded-full">
+                    <span className="inline-block px-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-xs rounded-full flex-shrink-0 whitespace-nowrap">
                       ...
                     </span>
                   )}
@@ -418,14 +447,42 @@ export default function VendorSelectionPanel({
                 </p>
               </div>
 
+              {/* Pricing & Coverage */}
+              <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-3 rounded-lg border border-light-border dark:border-dark-border bg-light-background dark:bg-dark-background">
+                  <h5 className="text-sm font-semibold text-light-text dark:text-dark-text mb-1">Pricing Range</h5>
+                  <p className="text-body-sm text-light-text-secondary dark:text-dark-text-secondary">{selectedVendor.avgCostPerCall} per call</p>
+                </div>
+                <div className="p-3 rounded-lg border border-light-border dark:border-dark-border bg-light-background dark:bg-dark-background">
+                  <h5 className="text-sm font-semibold text-light-text dark:text-dark-text mb-1">Regions Focus</h5>
+                  <div className="flex gap-1 overflow-x-auto min-w-0">
+                    {getRegionsForVendor(selectedVendor).map((r) => (
+                      <span key={r} className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-xs rounded-full flex-shrink-0 whitespace-nowrap">{r}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Industries Specialization */}
+              <div className="mb-6">
+                <h4 className="text-base font-semibold text-light-text dark:text-dark-text mb-3">Industries</h4>
+                <div className="flex flex-wrap gap-2 min-w-0">
+                  {getIndustriesForVendor(selectedVendor).map((ind) => (
+                    <span key={ind} className="px-3 py-1.5 bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-md text-body-sm text-light-text dark:text-dark-text flex-shrink-0 whitespace-nowrap">
+                      {ind}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
               {/* Specialization Section */}
               <div className="mb-6">
                 <h4 className="text-base font-semibold text-light-text dark:text-dark-text mb-3">Specialisation</h4>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 min-w-0">
                   {selectedVendor.tags.map((tag, index) => (
                     <span
                       key={index}
-                      className="px-3 py-1.5 bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-md text-body-sm text-light-text dark:text-dark-text"
+                      className="px-3 py-1.5 bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-md text-body-sm text-light-text dark:text-dark-text flex-shrink-0 whitespace-nowrap"
                     >
                       {tag}
                     </span>
@@ -437,8 +494,8 @@ export default function VendorSelectionPanel({
               <div className="border-t border-light-border dark:border-dark-border pt-6">
                 <h4 className="text-base font-semibold text-light-text dark:text-dark-text mb-4">Account manager</h4>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden flex-shrink-0">
                       <Image 
                         src="/images/avatar/John Robert.png" 
                         alt="John Doe" 
@@ -447,9 +504,9 @@ export default function VendorSelectionPanel({
                         className="w-12 h-12 object-cover"
                       />
                     </div>
-                    <div>
-                      <p className="text-body-sm font-semibold text-light-text dark:text-dark-text">John Doe</p>
-                      <p className="text-body-sm text-light-text-secondary dark:text-dark-text-secondary">Designation</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-body-sm font-semibold text-light-text dark:text-dark-text truncate">John Doe</p>
+                      <p className="text-body-sm text-light-text-secondary dark:text-dark-text-secondary truncate">Designation</p>
                     </div>
                   </div>
                   <div className="text-right">

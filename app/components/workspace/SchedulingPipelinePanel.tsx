@@ -49,11 +49,11 @@ export default function SchedulingPipelinePanel() {
                                 </div>
                                 
                                 {/* Expert Info */}
-                                <div className="flex-1">
-                                    <div className="font-medium text-light-text dark:text-dark-text">
+                                <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-light-text dark:text-dark-text truncate">
                                         {pe.name}
                                     </div>
-                                    <div className="text-sm text-light-text-tertiary dark:text-dark-text-tertiary">
+                                    <div className="text-sm text-light-text-tertiary dark:text-dark-text-tertiary truncate">
                                         {pe.title}
                                     </div>
                                 </div>
