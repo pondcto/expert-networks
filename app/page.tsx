@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Suspense, useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { AppSidebar } from "./components/app-sidebar";
 import { SidebarInset } from "./components/ui/sidebar";
 import Logo from "./components/Logo";
@@ -9,7 +10,69 @@ import UserMenu from "./components/UserMenu";
 import NewProjectModal from "./components/NewProjectModal";
 import { Tooltip, TooltipTrigger, TooltipContent } from "./components/ui/tooltip";
 import { Sun, Moon, Calendar, FolderOpen, Plus, Trash2, GripVertical, Folder } from "lucide-react";
-import { useRouter } from "next/navigation";
+
+// Column width keys for localStorage
+const COLUMN_WIDTHS_KEY = "dashboard_column_widths";
+
+// Default column widths
+const DEFAULT_COLUMN_WIDTHS = {
+  dragHandle: 16,
+  campaignName: 400,
+  industry: 180,
+  timeline: 250,
+  targetRegions: 288,
+  divider: 1,
+  callsProgress: 200,
+  status: 96,
+  cost: 80,
+  team: 80,
+  delete: 32,
+};
+
+// Resize handle component
+function ColumnResizer({
+  onResizeStart,
+  onResize,
+  className = "",
+}: {
+  onResizeStart: (startX: number) => void;
+  onResize: (currentX: number) => void;
+  className?: string;
+}) {
+  const [isResizing, setIsResizing] = useState(false);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+    onResizeStart(e.clientX);
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      onResize(moveEvent.clientX);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  };
+
+  return (
+    <div
+      onMouseDown={handleMouseDown}
+      className={`absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary-500 z-20 ${isResizing ? "bg-primary-500" : ""} ${className}`}
+      style={{ marginRight: "-12px" }}
+    />
+  );
+}
 import {
   DndContext,
   DragOverlay,
@@ -145,11 +208,13 @@ function DraggableCampaignCardRow({
   projectCode,
   onDelete,
   onNavigate,
+  columnWidths,
 }: {
   campaign: Campaign;
   projectCode: string;
   onDelete: (e: React.MouseEvent, campaignId: string) => void;
   onNavigate: (campaignId: string) => void;
+  columnWidths: typeof DEFAULT_COLUMN_WIDTHS;
 }) {
   const {
     attributes,
@@ -267,7 +332,8 @@ function DraggableCampaignCardRow({
     >
       {/* Drag Handle */}
       <div 
-        className="flex-shrink-0 w-4 cursor-grab active:cursor-grabbing"
+        className="flex-shrink-0 cursor-grab active:cursor-grabbing"
+        style={{ width: `${columnWidths.dragHandle}px` }}
         {...attributes} 
         {...listeners}
       >
@@ -276,7 +342,8 @@ function DraggableCampaignCardRow({
 
       {/* Campaign Name */}
       <div 
-        className="flex-1 min-w-0 cursor-pointer"
+        className="min-w-0 cursor-pointer"
+        style={{ width: `${columnWidths.campaignName}px` }}
         onClick={(e) => {
           e.stopPropagation();
           onNavigate(campaign.id);
@@ -288,14 +355,14 @@ function DraggableCampaignCardRow({
       </div>
 
       {/* Industry */}
-      <div className="flex-1 min-w-0">
-        <p className="ml-[4vw] text-xs text-light-text-secondary dark:text-dark-text-secondary truncate">
+      <div className="min-w-0" style={{ width: `${columnWidths.industry}px` }}>
+        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate">
           {campaign.industryVertical}
         </p>
       </div>
 
       {/* Timeline */}
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0" style={{ width: `${columnWidths.timeline}px` }}>
         <div className="flex items-center gap-1 text-xs text-light-text-secondary dark:text-dark-text-secondary">
           <Calendar className="w-3 h-3 flex-shrink-0" />
           <span className="truncate">{formatDateRange(campaign.startDate, campaign.targetCompletionDate)}</span>
@@ -303,19 +370,19 @@ function DraggableCampaignCardRow({
       </div>
 
       {/* Target Regions */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1">
+      <div className="min-w-0" style={{ width: `${columnWidths.targetRegions}px` }}>
+        <div className="flex items-center gap-1 overflow-x-auto min-w-0">
           {targetRegions.slice(0, 3).map((region: string, index: number) => (
             <span 
               key={index}
-              className="inline-flex items-center justify-center w-14 px-2 py-0.5 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary"
+              className="inline-flex items-center justify-center w-14 px-2 py-0.5 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0 whitespace-nowrap"
               title={region}
             >
               {getRegionAbbreviation(region)}
             </span>
           ))}
           {targetRegions.length > 3 && (
-            <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary flex-shrink-0">
+            <span className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary flex-shrink-0 whitespace-nowrap">
               +{targetRegions.length - 3}
             </span>
           )}
@@ -323,10 +390,10 @@ function DraggableCampaignCardRow({
       </div>
 
       {/* Divider */}
-      <div className="flex-shrink-0 w-px h-8 bg-light-border dark:bg-dark-border ml-4"></div>
+      <div className="flex-shrink-0 h-8 bg-light-border dark:bg-dark-border" style={{ width: `${columnWidths.divider}px` }}></div>
 
       {/* Number of Calls Progress Bar */}
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0" style={{ width: `${columnWidths.callsProgress}px` }}>
         <div className="px-3 py-1">
           <Tooltip>
             <TooltipTrigger asChild>
@@ -380,14 +447,14 @@ function DraggableCampaignCardRow({
       </div>
 
       {/* Status */}
-      <div className="flex-shrink-0 w-24 text-center">
+      <div className="flex-shrink-0 text-center" style={{ width: `${columnWidths.status}px` }}>
         <span className={`inline-flex items-center justify-center w-20 px-2 py-0.5 border border-primary-300 rounded-full text-xs font-medium ${status.color}`}>
           {status.label}
         </span>
       </div>
 
       {/* Cost - Based on performed calls */}
-      <div className="flex-shrink-0 w-20 text-center">
+      <div className="flex-shrink-0 text-center" style={{ width: `${columnWidths.cost}px` }}>
         <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-medium whitespace-nowrap">
           {(() => {
             const targetCalls = estimatedCalls || 0;
@@ -398,7 +465,7 @@ function DraggableCampaignCardRow({
       </div>
 
       {/* Team */}
-      <div className="flex-shrink-0 w-20">
+      <div className="flex-shrink-0" style={{ width: `${columnWidths.team}px` }}>
         {campaign.teamMembers && campaign.teamMembers.length > 0 ? (
           <div className="flex -space-x-1">
             {campaign.teamMembers.slice(0, 3).map((member) => (
@@ -421,17 +488,19 @@ function DraggableCampaignCardRow({
         )}
       </div>
 
-      {/* Delete Button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete(e, campaign.id);
-        }}
-        className="flex-shrink-0 p-1.5 text-light-text-tertiary dark:text-dark-text-tertiary hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors opacity-0 group-hover:opacity-100"
-        title="Delete campaign"
-      >
-        <Trash2 className="w-4 h-4" />
-      </button>
+      {/* Delete Button - Always at the end */}
+      <div className="flex-shrink-0 flex justify-center ml-auto" style={{ width: `${columnWidths.delete}px` }}>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(e, campaign.id);
+          }}
+          className="p-1.5 text-light-text-tertiary dark:text-dark-text-tertiary hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors opacity-0 group-hover:opacity-100"
+          title="Delete campaign"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   );
 }
@@ -445,6 +514,7 @@ function ProjectCard({
   onDeleteCampaign,
   onNavigateToCampaign,
   formatCurrency,
+  columnWidths,
 }: {
   project: ProjectGroup;
   costPercentage: number;
@@ -453,6 +523,7 @@ function ProjectCard({
   onDeleteCampaign: (e: React.MouseEvent, campaignId: string) => void;
   onNavigateToCampaign: (campaignId: string) => void;
   formatCurrency: (amount: number) => string;
+  columnWidths: typeof DEFAULT_COLUMN_WIDTHS;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -563,7 +634,7 @@ function ProjectCard({
                   e.stopPropagation();
                   onDeleteProject(e, project.projectCode, project.projectName);
                 }}
-                className="flex-shrink-0 p-1.5 mr-2 text-light-text-tertiary dark:text-dark-text-tertiary hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors opacity-0 group-hover:opacity-100"
+                className="flex-shrink-0 p-1.5 mr-2.5 text-light-text-tertiary dark:text-dark-text-tertiary hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors opacity-0 group-hover:opacity-100"
                 title="Delete project"
               >
                 <Trash2 className="w-4 h-4" />
@@ -587,6 +658,7 @@ function ProjectCard({
                     projectCode={project.projectCode}
                     onDelete={onDeleteCampaign}
                     onNavigate={onNavigateToCampaign}
+                    columnWidths={columnWidths}
                   />
                 ))}
               </div>
@@ -619,6 +691,52 @@ function HomeContent() {
   
   // Memoize grouped projects to ensure consistency
   const [groupedProjects, setGroupedProjects] = useState<ProjectGroup[]>([]);
+
+  // Column widths state - load from localStorage or use defaults
+  const [columnWidths, setColumnWidths] = useState<typeof DEFAULT_COLUMN_WIDTHS>(() => {
+    try {
+      const saved = localStorage.getItem(COLUMN_WIDTHS_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return { ...DEFAULT_COLUMN_WIDTHS, ...parsed };
+      }
+    } catch (e) {
+      console.error("Failed to load column widths from localStorage", e);
+    }
+    return DEFAULT_COLUMN_WIDTHS;
+  });
+
+  // Save column widths to localStorage
+  const saveColumnWidths = (widths: typeof DEFAULT_COLUMN_WIDTHS) => {
+    try {
+      localStorage.setItem(COLUMN_WIDTHS_KEY, JSON.stringify(widths));
+    } catch (e) {
+      console.error("Failed to save column widths to localStorage", e);
+    }
+  };
+
+  // Handler to resize a column
+  const resizeStateRef = useRef<{ columnKey: keyof typeof DEFAULT_COLUMN_WIDTHS | null; startWidth: number; startX: number }>({ columnKey: null, startWidth: 0, startX: 0 });
+
+  const startColumnResize = (columnKey: keyof typeof DEFAULT_COLUMN_WIDTHS, currentWidth: number, startX: number) => {
+    resizeStateRef.current = { columnKey, startWidth: currentWidth, startX };
+  };
+
+  const updateColumnResize = (currentX: number) => {
+    if (!resizeStateRef.current.columnKey) return;
+    
+    const deltaX = currentX - resizeStateRef.current.startX;
+    
+    setColumnWidths((prev) => {
+      const newWidths = { ...prev };
+      const minWidth = 50; // Minimum column width
+      const maxWidth = 600; // Maximum column width
+      const newWidth = resizeStateRef.current.startWidth + deltaX;
+      newWidths[resizeStateRef.current.columnKey!] = Math.max(minWidth, Math.min(maxWidth, newWidth));
+      saveColumnWidths(newWidths);
+      return newWidths;
+    });
+  };
 
   // Seed mock data into localStorage on first run (only if no campaigns exist)
   const seedMockDataOnce = () => {
@@ -1481,68 +1599,100 @@ function HomeContent() {
             <div className="sticky top-0 z-10 bg-light-background dark:bg-dark-background border-b-2 border-light-border dark:border-dark-border mb-2">
               <div className="flex items-center gap-3 ml-[5vw] py-2 px-1">
                 {/* Drag Handle Column */}
-                <div className="flex-shrink-0 w-4"></div>
+                <div className="flex-shrink-0" style={{ width: `${columnWidths.dragHandle}px` }}></div>
 
                 {/* Campaign Name */}
-                <div className="pl-1 flex-1 min-w-0">
+                <div className="relative min-w-0" style={{ width: `${columnWidths.campaignName}px` }}>
                   <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
                   </span>
+                  <ColumnResizer 
+                    onResizeStart={(startX) => startColumnResize("campaignName", columnWidths.campaignName, startX)} 
+                    onResize={updateColumnResize} 
+                  />
                 </div>
 
                 {/* Industry */}
-                <div className="pl-1 flex-1 min-w-0 ">
-                  <span className="ml-[4vw] text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
+                <div className="relative min-w-0" style={{ width: `${columnWidths.industry}px` }}>
+                  <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
                     Industry
                   </span>
+                  <ColumnResizer 
+                    onResizeStart={(startX) => startColumnResize("industry", columnWidths.industry, startX)} 
+                    onResize={updateColumnResize} 
+                  />
                 </div>
 
                 {/* Timeline */}
-                <div className="pl-1 flex-1 min-w-0">
+                <div className="relative min-w-0" style={{ width: `${columnWidths.timeline}px` }}>
                   <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
                     Timeline
                   </span>
+                  <ColumnResizer 
+                    onResizeStart={(startX) => startColumnResize("timeline", columnWidths.timeline, startX)} 
+                    onResize={updateColumnResize} 
+                  />
                 </div>
 
                 {/* Target Regions */}
-                <div className="pl-1 flex-1 min-w-0">
+                <div className="relative min-w-0" style={{ width: `${columnWidths.targetRegions}px` }}>
                   <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
                     Target Regions
                   </span>
+                  <ColumnResizer 
+                    onResizeStart={(startX) => startColumnResize("targetRegions", columnWidths.targetRegions, startX)} 
+                    onResize={updateColumnResize} 
+                  />
                 </div>
 
                 {/* Divider */}
-                <div className="flex-shrink-0 w-px h-6 bg-light-border dark:bg-dark-border ml-4"></div>
+                <div className="flex-shrink-0 h-6 bg-light-border dark:bg-dark-border" style={{ width: `${columnWidths.divider}px` }}></div>
 
                 {/* Calls Progress */}
-                <div className="pl-1 flex-1 min-w-0">
+                <div className="relative min-w-0 ml-2" style={{ width: `${columnWidths.callsProgress}px` }}>
                   <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
                     Calls Progress
                   </span>
+                  <ColumnResizer 
+                    onResizeStart={(startX) => startColumnResize("callsProgress", columnWidths.callsProgress, startX)} 
+                    onResize={updateColumnResize} 
+                  />
                 </div>
 
                 {/* Status */}
-                <div className="pl-1 flex-shrink-0 w-24">
+                <div className="relative flex-shrink-0" style={{ width: `${columnWidths.status}px` }}>
                   <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
                     Status
                   </span>
+                  <ColumnResizer 
+                    onResizeStart={(startX) => startColumnResize("status", columnWidths.status, startX)} 
+                    onResize={updateColumnResize} 
+                  />
                 </div>
 
                 {/* Cost */}
-                <div className="pl-1 flex-shrink-0 w-20">
+                <div className="relative flex-shrink-0" style={{ width: `${columnWidths.cost}px` }}>
                   <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
                     Cost
                   </span>
+                  <ColumnResizer 
+                    onResizeStart={(startX) => startColumnResize("cost", columnWidths.cost, startX)} 
+                    onResize={updateColumnResize} 
+                  />
                 </div>
 
                 {/* Team */}
-                <div className="pl-1 flex-shrink-0 w-20">
+                <div className="relative flex-shrink-0" style={{ width: `${columnWidths.team}px` }}>
                   <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
                     Team
                   </span>
+                  <ColumnResizer 
+                    onResizeStart={(startX) => startColumnResize("team", columnWidths.team, startX)} 
+                    onResize={updateColumnResize} 
+                  />
                 </div>
 
                 {/* Delete Column */}
-                <div className="flex-shrink-0 w-8"></div>
+                <div className="flex-shrink-0" style={{ width: `${columnWidths.delete}px` }}></div>
               </div>
             </div>
           )}
@@ -1592,8 +1742,8 @@ function HomeContent() {
                         onDeleteProject={handleDeleteProject}
                         onDeleteCampaign={handleDeleteCampaign}
                         onNavigateToCampaign={(id) => router.push(`/campaign/${id}/settings`)}
-                    
                         formatCurrency={formatCurrency}
+                        columnWidths={columnWidths}
                       />
                     );
                   })}
