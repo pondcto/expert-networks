@@ -24,8 +24,8 @@ export default function CampaignSettingsWorkspace() {
     answerWidth: 70, // Vendor Selection width %
     topHeight: 35, // Top section height %
     activitiesWidth: 40, // Campaign Basics width %
-    sourcesWidth: 40 // Campaign Scope width %
-    // Team Members gets the remaining width (34%)
+    sourcesWidth: 28 // Campaign Scope width % (reduced from 40%)
+    // Team Members gets the remaining width (32%)
   });
 
   // Extract individual values for backward compatibility
@@ -382,7 +382,7 @@ export default function CampaignSettingsWorkspace() {
               </span>
             </button>
           ) : (
-            <div style={{ height: `${topHeight}%` }} className="w-full">
+            <div style={bottomCollapsed ? {} : { height: `${topHeight}%` }} className={bottomCollapsed ? "flex-1 min-h-0 w-full" : "w-full"}>
               <div className="card h-full w-full flex flex-col overflow-hidden pb-0 px-3 pt-3">
                 <div className="flex-1 min-h-0 flex gap-1" ref={centerBottomRef}>
                   {/* Campaign Basics */}
@@ -422,7 +422,7 @@ export default function CampaignSettingsWorkspace() {
                     <button
                       className="w-7 shrink-0 h-full flex items-center justify-center bg-light-background-secondary dark:bg-dark-background-secondary border border-light-border dark:border-dark-border rounded"
                       title="Expand Campaign Scope"
-                      onClick={() => setSourcesWidth(40)}
+                      onClick={() => setSourcesWidth(28)}
                     >
                       <span className="[writing-mode:vertical-rl] rotate-180 text-body-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary">
                         Scope
@@ -456,7 +456,7 @@ export default function CampaignSettingsWorkspace() {
                       title="Expand Team Members"
                       onClick={() => {
                         setActivitiesWidth(40);
-                        setSourcesWidth(40);
+                        setSourcesWidth(28);
                       }}
                     >
                       <span className="[writing-mode:vertical-rl] rotate-180 text-body-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary">
@@ -486,7 +486,7 @@ export default function CampaignSettingsWorkspace() {
           {/* Bottom Section: Screening Questions (30%) | Vendor Selection (70%) */}
           {bottomCollapsed ? (
             <button
-              className="h-7 w-full shrink-0 flex items-center justify-center bg-light-surface dark:bg-dark-surface border-y border-light-border dark:border-dark-border rounded-none"
+              className="h-7 w-full shrink-0 mt-auto flex items-center justify-center bg-light-surface dark:bg-dark-surface border-y border-light-border dark:border-dark-border rounded-none"
               title="Expand Screening & Vendor Selection"
               onClick={() => setTopHeight(35)}
             >

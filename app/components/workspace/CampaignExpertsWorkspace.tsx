@@ -193,7 +193,7 @@ export default function CampaignExpertsWorkspace() {
               </span>
             </button>
           ) : (
-              <div style={{ height: `${topHeight}%` }} className="w-full">
+              <div style={bottomCollapsed ? {} : { height: `${topHeight}%` }} className={bottomCollapsed ? "flex-1 min-h-0 w-full" : "w-full"}>
                 <ProposedExpertsPanel onExpertSelect={setSelectedExpert} selectedExpertId={selectedExpert?.id ?? null} />
             </div>
           )}
@@ -211,7 +211,7 @@ export default function CampaignExpertsWorkspace() {
           {/* Bottom Section: Screening Questions (50%) | Vendor Selection (50%) */}
           {bottomCollapsed ? (
             <button
-              className="h-7 w-full shrink-0 flex items-center justify-center bg-light-surface dark:bg-dark-surface border-y border-light-border dark:border-dark-border rounded-none"
+              className="h-7 w-full shrink-0 mt-auto flex items-center justify-center bg-light-surface dark:bg-dark-surface border-y border-light-border dark:border-dark-border rounded-none"
               title="Expand Screening & Vendor Selection"
               onClick={() => setTopHeight(35)}
             >

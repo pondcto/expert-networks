@@ -19,6 +19,17 @@ import {
 import { Check, Users, X, Send } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { CampaignData } from "../../lib/campaign-context";
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  useDraggable,
+  useDroppable,
+} from "@dnd-kit/core";
 
 interface ExpertSchedulingPanelProps {
   selectedExpert?: ProposedExpert | null;
@@ -37,6 +48,72 @@ interface ExtendedCampaignData extends CampaignData {
   scheduledCalls?: number;
 }
 
+// Draggable Team Member Component
+function DraggableTeamMember({ member, isRequired }: { member: TeamMember; isRequired: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `member-${member.id}`,
+    data: { member, isRequired },
+  });
+
+  const style = transform
+    ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+        opacity: isDragging ? 0.5 : 1,
+      }
+    : undefined;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <img
+          ref={setNodeRef}
+          style={style}
+          {...listeners}
+          {...attributes}
+          src={member.avatar}
+          alt={member.name}
+          className={`w-8 h-8 rounded-full border-2 object-cover transition-all ${
+            isDragging
+              ? 'cursor-grabbing opacity-50'
+              : 'cursor-grab'
+          } ${
+            isRequired
+              ? 'border-primary-400 dark:border-primary-600 opacity-50'
+              : 'border-light-background dark:border-dark-background hover:border-primary-300 dark:hover:border-primary-700 hover:scale-110'
+          }`}
+        />
+      </TooltipTrigger>
+      <TooltipContent side="top" className="bg-gray-900 dark:bg-gray-800 text-white border border-gray-700">
+        <p className="text-sm">{member.name}</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+// Droppable Section Component
+function DroppableSection({ 
+  id, 
+  children, 
+  className 
+}: { 
+  id: string; 
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const { setNodeRef, isOver } = useDroppable({
+    id,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`${className || ''} ${isOver ? 'ring-2 ring-primary-500 ring-offset-2 bg-primary-50 dark:bg-primary-900/20' : ''}`}
+    >
+      {children}
+    </div>
+  );
+}
+
 export default function ExpertSchedulingPanel({ selectedExpert }: ExpertSchedulingPanelProps) {
   const { campaignData } = useCampaign();
   const [currentWeek, setCurrentWeek] = useState(new Date());
@@ -46,6 +123,15 @@ export default function ExpertSchedulingPanel({ selectedExpert }: ExpertScheduli
   const [timeZone, setTimeZone] = useState<string>("UTC");
   const [timeZones, setTimeZones] = useState<string[]>([]);
   const [showRequestModal, setShowRequestModal] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
   const weekDays = generateWeekDays(currentWeek);
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 0 });
@@ -97,6 +183,51 @@ export default function ExpertSchedulingPanel({ selectedExpert }: ExpertScheduli
     // Reset to current week
     setCurrentWeek(new Date());
   }, [selectedExpert?.id]);
+
+  // Handle drag start
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  // Handle drag end - move member between sections
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+
+    if (!over) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    if (!activeId.startsWith('member-')) return;
+
+    const memberId = activeId.replace('member-', '');
+    const extendedCampaign = campaignData as ExtendedCampaignData;
+    const cid = extendedCampaign?.id;
+
+    if (overId === 'required-attendees') {
+      // Move to required attendees
+      if (!requiredMemberIds.includes(memberId)) {
+        const next = [...requiredMemberIds, memberId];
+        setRequiredMemberIds(next);
+        if (cid) localStorage.setItem(`required_members_${cid}`, JSON.stringify(next));
+      }
+    } else if (overId === 'team-members') {
+      // Move to team members (remove from required)
+      if (requiredMemberIds.includes(memberId)) {
+        const next = requiredMemberIds.filter(x => x !== memberId);
+        setRequiredMemberIds(next);
+        if (cid) localStorage.setItem(`required_members_${cid}`, JSON.stringify(next));
+      }
+    }
+  };
+
+  // Get active member for drag overlay
+  const getActiveMember = () => {
+    if (!activeId || !activeId.startsWith('member-')) return null;
+    const memberId = activeId.replace('member-', '');
+    return teamMembers.find(m => m.id === memberId) || null;
+  };
 
   const isPastDay = (date: Date): boolean => {
     const today = startOfDay(new Date());
@@ -270,100 +401,83 @@ export default function ExpertSchedulingPanel({ selectedExpert }: ExpertScheduli
         </div>
       </div>
 
-      <div className="flex items-center mb-3">
-        {/* Divider */}
-        {teamMembers.length > 0 && (
-          <>
-            <div className="mb-3 w-1/2">
+      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <div className="flex items-center gap-3 mb-3">
+          {/* Team Members Section */}
+          {teamMembers.length > 0 && (
+            <DroppableSection 
+              id="team-members" 
+              className="mb-3 w-1/2 flex-1"
+            >
               <div className="p-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded">
-                <div className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-2">Team Members</div>
+                <div className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-2">
+                  Team Members
+                </div>
                 <div className="flex items-center min-h-[40px]">
-                  {/* Team Members */}
                   <div className="flex flex-col gap-1">
                     <div className="flex -space-x-2">
-                      {teamMembers.map((member) => {
-                        const isRequired = requiredMemberIds.includes(member.id);
-                        return (
-                          <Tooltip key={member.id}>
-                            <TooltipTrigger asChild>
-                              <img
-                                src={member.avatar}
-                                alt={member.name}
-                                onClick={() => {
-                                  const extendedCampaign = campaignData as ExtendedCampaignData;
-                                  const cid = extendedCampaign?.id;
-                                  if (isRequired) {
-                                    // Remove from required
-                                    const next = requiredMemberIds.filter(x => x !== member.id);
-                                    setRequiredMemberIds(next);
-                                    if (cid) localStorage.setItem(`required_members_${cid}`, JSON.stringify(next));
-                                  } else {
-                                    // Add to required
-                                    const next = [...requiredMemberIds, member.id];
-                                    setRequiredMemberIds(next);
-                                    if (cid) localStorage.setItem(`required_members_${cid}`, JSON.stringify(next));
-                                  }
-                                }}
-                                className={`w-8 h-8 rounded-full border-2 object-cover transition-all cursor-pointer ${
-                                  isRequired
-                                    ? 'border-primary-400 dark:border-primary-600 opacity-50'
-                                    : 'border-light-background dark:border-dark-background hover:border-primary-300 dark:hover:border-primary-700 hover:scale-110'
-                                }`}
-                              />
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="bg-gray-900 dark:bg-gray-800 text-white border border-gray-700">
-                              <p className="text-sm">{member.name}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        );
-                      })}
+                      {teamMembers
+                        .filter(member => !requiredMemberIds.includes(member.id))
+                        .map((member) => (
+                          <DraggableTeamMember
+                            key={member.id}
+                            member={member}
+                            isRequired={false}
+                          />
+                        ))}
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </>
-        )}
-        {/* Required Attendees */}
-        {teamMembers.length > 0 && (
-          <div className="mb-3 w-1/2">
-            <div className="p-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded">
-              <div className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-2">Required attendees</div>
-              <div className="flex items-center min-h-[40px]">
-                {requiredMemberIds.length === 0 ? (
-                  <div className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary italic">
-                  </div>
-                ) : (
-                  <div className="flex -space-x-2">
-                    {teamMembers.filter(m => requiredMemberIds.includes(m.id)).map(m => (
-                      <Tooltip key={m.id}>
-                        <TooltipTrigger asChild>
-                          <img
-                            src={m.avatar}
-                            alt={m.name}
-                              onClick={() => {
-                                // Remove from required
-                                const next = requiredMemberIds.filter(x => x !== m.id);
-                                setRequiredMemberIds(next);
-                                const extendedCampaign = campaignData as ExtendedCampaignData;
-                                const cid = extendedCampaign?.id;
-                                if (cid) localStorage.setItem(`required_members_${cid}`, JSON.stringify(next));
-                            }}
-                            className="w-8 h-8 rounded-full border-2 border-primary-400 dark:border-primary-600 object-cover cursor-pointer hover:border-primary-500 dark:hover:border-primary-500 hover:scale-110 transition-all"
+            </DroppableSection>
+          )}
+          {/* Required Attendees Section */}
+          {teamMembers.length > 0 && (
+            <DroppableSection 
+              id="required-attendees" 
+              className="mb-3 w-1/2 flex-1"
+            >
+              <div className="p-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded">
+                <div className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-2">
+                  Required attendees
+                </div>
+                <div className="flex items-center min-h-[40px]">
+                  {requiredMemberIds.length === 0 ? (
+                    <div className="text-xs text-light-text-tertiary dark:text-dark-text-tertiary italic">
+                      Drag team members here
+                    </div>
+                  ) : (
+                    <div className="flex -space-x-2">
+                      {teamMembers
+                        .filter(m => requiredMemberIds.includes(m.id))
+                        .map(m => (
+                          <DraggableTeamMember
+                            key={m.id}
+                            member={m}
+                            isRequired={true}
                           />
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="bg-gray-900 dark:bg-gray-800 text-white border border-gray-700">
-                          <p className="text-sm">{m.name}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
-                  </div>
-                )}
+                        ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          </div>
-        )}
-      </div>
+            </DroppableSection>
+          )}
+        </div>
+        <DragOverlay>
+          {activeId && (() => {
+            const activeMember = getActiveMember();
+            if (!activeMember) return null;
+            return (
+              <img
+                src={activeMember.avatar}
+                alt={activeMember.name}
+                className="w-8 h-8 rounded-full border-2 border-primary-400 dark:border-primary-600 object-cover opacity-75"
+              />
+            );
+          })()}
+        </DragOverlay>
+      </DndContext>
 
       {/* Legend */}
       <div className="flex items-center gap-4 mb-3 text-xs">

@@ -356,7 +356,7 @@ export default function CampaignInterviewsWorkspace() {
               </span>
             </button>
           ) : (
-            <div style={{ height: `${topHeight}%` }} className="w-full">
+            <div style={bottomCollapsed ? {} : { height: `${topHeight}%` }} className={bottomCollapsed ? "flex-1 min-h-0 w-full" : "w-full"}>
               <div className="card h-full w-full flex flex-col overflow-hidden pb-0 px-3 pt-3">
                 <div className="flex-1 min-h-0 flex gap-1" ref={centerBottomRef}>
                   {/* Scheduling Pipeline */}
@@ -454,7 +454,7 @@ export default function CampaignInterviewsWorkspace() {
           {/* Bottom Section: Screening Questions (60%) | Vendor Selection (40%) */}
           {bottomCollapsed ? (
             <button
-              className="h-7 w-full shrink-0 flex items-center justify-center bg-light-surface dark:bg-dark-surface border-y border-light-border dark:border-dark-border rounded-none"
+              className="h-7 w-full shrink-0 mt-auto flex items-center justify-center bg-light-surface dark:bg-dark-surface border-y border-light-border dark:border-dark-border rounded-none"
               title="Expand Completed Interviews"
               onClick={() => setTopHeight(35)}
             >

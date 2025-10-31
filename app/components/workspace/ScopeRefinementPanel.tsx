@@ -764,9 +764,9 @@ export default function ScopeRefinementPanel({
               showHints.calls ? 'border-red-500 bg-red-50/50 dark:bg-red-900/10' : 'border-light-border dark:border-dark-border'
             }`}>
               {/* Single-row layout: min input, slider, max input */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 w-fit max-w-full">
                 {/* Min Input */}
-                <div className="w-20">
+                <div className="w-20 flex-shrink-0">
                   <input
                     type="number"
                     min="1"
@@ -783,7 +783,7 @@ export default function ScopeRefinementPanel({
                 </div>
 
                 {/* Slider */}
-                <div className="flex-1 relative py-2">
+                <div className="relative py-2" style={{ width: '220px', flexShrink: 0 }}>
                   {/* Track */}
                   <div className="absolute top-1/2 -translate-y-1/2 w-full h-1.5 bg-light-background-secondary dark:bg-dark-background-secondary rounded-full" />
 
@@ -834,7 +834,7 @@ export default function ScopeRefinementPanel({
                 </div>
 
                 {/* Max Input */}
-                <div className="w-20">
+                <div className="w-20 flex-shrink-0">
                   <input
                     type="number"
                     min={formData.minCalls}
